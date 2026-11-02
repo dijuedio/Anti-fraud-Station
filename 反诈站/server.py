@@ -1287,16 +1287,17 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     port = int(os.environ.get("PORT", "8020"))
+    host = os.environ.get("HOST", "127.0.0.1")   # 云上部署时设 HOST=0.0.0.0
     has_key = "有" if API_KEY else "无（走兜底台词）"
     print("=" * 46)
     print("  《别接》反诈站已启动")
-    print(f"  首页：http://127.0.0.1:{port}/   演一次：/game")
+    print(f"  首页：http://{host}:{port}/   演一次：/game")
     print(f"  模型：{MODEL}   key：{has_key}")
     print("  账号：每个玩家用自己的 API Key；管理员后台 http://127.0.0.1:%d/admin" % port)
     print("  Ctrl+C 结束")
     print("=" * 46)
     ThreadingHTTPServer.allow_reuse_address = False   # Windows 上允许复用会导致两个实例同时监听
-    srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    srv = ThreadingHTTPServer((host, port), Handler)
     try:
         srv.serve_forever()
     except OSError as e:
