@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>反过来骗一次 · 别接</title>
+<style>
+  :root{--bg:#08090b;--bg2:#0d0f13;--line:rgba(255,255,255,.075);--ink:#f5f6f8;--dim:#8a8f99;--dim2:#5f646d;--green:#2ee6a8;--red:#ff4d4d;--amber:#f5a524}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 "PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px}
+  header{position:sticky;top:0;z-index:10;background:rgba(8,9,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;justify-content:space-between;height:56px}
+  .back{text-decoration:none;color:var(--dim);font-size:13.5px}
+  .back:hover{color:var(--ink)}
+  .round{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .round b{color:var(--amber)}
+
+  .intro{padding:26px 0 6px}
+  .intro h1{font-size:25px;margin:0 0 10px;letter-spacing:-.01em}
+  .intro p{color:var(--dim);font-size:14.5px;margin:0 0 8px;line-height:1.8}
+  .warn{font-size:12.5px;color:var(--amber);opacity:.85;margin:14px 0 0;padding-left:2px}
+
+  .chat{padding:18px 0 10px;min-height:180px}
+  .msg{display:flex;gap:9px;margin-bottom:14px;animation:in .25s both}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .msg .ava{width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+  .msg.me{flex-direction:row-reverse}
+  .msg.me .ava{background:#25303a;color:#9fb3c6}
+  .msg.them .ava{background:#3a2f24;color:#d8b98a}
+  .bub{max-width:78%;padding:10px 14px;border-radius:14px;font-size:14.5px;line-height:1.72}
+  .msg.me .bub{background:rgba(46,230,168,.12);border:1px solid rgba(46,230,168,.25);color:#dff7ee;border-top-right-radius:4px}
+  .msg.them .bub{background:#171a20;border:1px solid var(--line);color:#dfe2e7;border-top-left-radius:4px}
+  .msg.sys{justify-content:center}
+  .msg.sys .bub{background:none;color:var(--dim2);font-size:12px;padding:2px}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:10px 0 0}
+  @media (max-width:560px){ .cards{grid-template-columns:1fr} }
+  .card{
+    all:unset;cursor:pointer;display:block;padding:12px 14px;border-radius:12px;
+    background:#12151a;border:1px solid var(--line);transition:.16s;
+  }
+  .card:hover{background:#181c23;border-color:rgba(46,230,168,.4)}
+  .card:disabled{opacity:.35;cursor:default}
+  .card .t{font-size:10.5px;letter-spacing:.12em;color:var(--dim2);margin-bottom:4px}
+  .card .c{font-size:13.5px;color:#e0e3e8;line-height:1.6}
+  .card[data-k="id"] .t{color:#8fa8c8}
+  .card[data-k="rush"] .t{color:#d89a5a}
+  .card[data-k="info"] .t{color:#8fc8a8}
+  .card[data-k="code"] .t{color:#d8756a}
+  .card[data-k="soft"] .t{color:#a89ac8}
+  .card[data-k="name"] .t{color:#c8b48f}
+
+  .typing{color:var(--dim2);font-size:13px;padding:6px 0}
+  .typing i{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--dim2);margin-right:3px;animation:bl 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+  @keyframes bl{0%,60%,100%{opacity:.2}30%{opacity:1}}
+
+  .end{padding:34px 0 60px;text-align:center;display:none}
+  .end.on{display:block;animation:in .4s both}
+  .end .big{font-size:30px;font-weight:700;letter-spacing:-.02em;margin-bottom:12px}
+  .end .big.win{color:var(--green)}
+  .end .big.lose{color:var(--dim)}
+  .end .desc{color:#c3c8d0;font-size:15px;line-height:1.85;max-width:30em;margin:0 auto 26px}
+  .used{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:28px}
+  .tag{font-size:12px;padding:5px 12px;border-radius:16px;border:1px solid var(--line);color:#b9bfc8}
+  .tag b{color:var(--amber);font-weight:500}
+  .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .btn{all:unset;cursor:pointer;padding:13px 24px;border-radius:12px;font-size:14.5px;text-align:center}
+  .btn.p{background:var(--green);color:#04120c;font-weight:600}
+  .btn.g{border:1px solid var(--line);color:#d6d9de}
+  .foot{color:var(--dim2);font-size:12.5px;line-height:1.9;padding:22px 0 60px;border-top:1px solid var(--line);margin-top:20px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="back" href="/">← 返回</a>
+    <div class="round" id="round">等你出手</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="intro" id="intro">
+    <h1>这一次，你是骗子。</h1>
+    <p>对面是一个刚毕业的年轻人，叫小林，一个人在城市里找工作。<br>
+       你要在五句话之内，让他把手机上的六位验证码念给你听。</p>
+    <p class="warn">这是识别训练，不是教程。现实里做这些事，构成诈骗罪。</p>
+  </div>
+
+  <div class="chat" id="chat"></div>
+  <div class="cards" id="cards"></div>
+
+  <div class="end" id="end"></div>
+
+  <p class="foot">
+    你在这一页说的话，都是从真实案件里抄下来的。<br>
+    自己演一遍，比看十遍科普记得住，因为你会看见对方是怎么一点点松口的。
+  </p>
+</main>
+
+<script>
+const CARDS = [
+  {k:'id',   t:'伪 造 身 份', c:'您好，我是平台客服，工号 0871。您有一笔退款一直没领。'},
+  {k:'rush', t:'制 造 紧 迫', c:'这笔钱今晚十二点就过期了，过了就补不回来了。'},
+  {k:'info', t:'报 出 信 息', c:'您的手机号尾号 3847，订单号 2025091 开头，系统里都查得到。'},
+  {k:'code', t:'索 要 验 证 码', c:'现在要核实身份，您把刚收到的那六位数字念一下就行。'},
+  {k:'name', t:'回 答 质 疑', c:'我们是××商城，您上个月买的那床被子，物流还在路上呢。'},
+  {k:'soft', t:'给 个 台 阶', c:'您放心，我们是正规流程，不会让您转一分钱。'}
+];
+const NAMES = {id:'伪造身份', rush:'制造紧迫', info:'报出信息', name:'回答质疑', code:'索要验证码', soft:'给个台阶'};
+
+const $ = (s) => document.querySelector(s);
+const chat = $('#chat'), cardsEl = $('#cards'), endEl = $('#end'), roundEl = $('#round');
+let turn = 0, over = false, used = [], history = [];
+
+function addMsg(who, text) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + (who === 'me' ? 'me' : who === 'sys' ? 'sys' : 'them');
+  if (who === 'sys') {
+    d.innerHTML = '<div class="bub"></div>';
+    d.firstChild.textContent = text;
+  } else {
+    d.innerHTML = (who === 'me'
+      ? '<div class="ava">你</div><div class="bub"></div>'
+      : '<div class="ava">林</div><div class="bub"></div>');
+    d.querySelector('.bub').textContent = text;
+  }
+  chat.appendChild(d);
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+function renderCards() {
+  cardsEl.innerHTML = '';
+  CARDS.forEach((c) => {
+    const b = document.createElement('button');
+    b.className = 'card';
+    b.dataset.k = c.k;
+    b.innerHTML = '<div class="t"></div><div class="c"></div>';
+    b.querySelector('.t').textContent = c.t;
+    b.querySelector('.c').textContent = c.c;
+    b.onclick = () => send(c);
+    cardsEl.appendChild(b);
+  });
+}
+
+async function send(card) {
+  if (over) return;
+  turn++;
+  used.push(card.k);
+  addMsg('me', card.c);
+  history.push({ who: 'me', text: card.c });
+
+  if (turn > 5) return;
+  roundEl.innerHTML = `第 <b>${turn}</b> / 5 句`;
+
+  [...cardsEl.children].forEach(b => b.disabled = true);
+  const tip = document.createElement('div');
+  tip.className = 'typing';
+  tip.innerHTML = '<i></i><i></i><i></i>';
+  chat.appendChild(tip);
+
+  try {
+    const r = await fetch('/api/reverse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ turn, text: card.c, history })
+    });
+    const d = await r.json();
+    tip.remove();
+    if (!r.ok || !d.ok) { addMsg('sys', d.error || '对方没接话'); [...cardsEl.children].forEach(b => b.disabled = false); return; }
+
+    addMsg('them', d.result.reply);
+    history.push({ who: 'victim', text: d.result.reply });
+
+    if (d.result.hooked) { finish(true); return; }
+    if (turn >= 5) { finish(false); return; }
+
+    [...cardsEl.children].forEach(b => b.disabled = false);
+  } catch (e) {
+    tip.remove();
+    addMsg('sys', '网络断了');
+    [...cardsEl.children].forEach(b => b.disabled = false);
+  }
+}
+
+function finish(win) {
+  over = true;
+  try { localStorage.setItem('af.done.reverse', '1'); } catch (e) {}
+  cardsEl.style.display = 'none';
+  roundEl.textContent = win ? '他上钩了' : '五句用完了';
+
+  const counts = {};
+  used.forEach(k => counts[k] = (counts[k] || 0) + 1);
+  const tags = Object.keys(counts).map(k => `<span class="tag">${NAMES[k]} <b>×${counts[k]}</b></span>`).join('');
+
+  endEl.className = 'end on';
+  endEl.innerHTML = win
+    ? `<div class="big win">他念出来了</div>
+       <p class="desc">你用了 ${used.length} 句话。先编个身份，催一下时间，再报两个数字，最后开口要。<br>
+       真的骗子每天打几百个这样的电话，总有一个人正好接起来。</p>
+       <div class="used">${tags}</div>
+       <div class="btns">
+         <a class="btn p" href="/quiz">换我当受害者，做十道题</a>
+         <button class="btn g" id="again">再来一次</button>
+       </div>`
+    : `<div class="big lose">他没给</div>
+       <p class="desc">五句话说完，他到挂电话都没念那六个数字。<br>
+       不是他聪明，是你这次还没找到他怕的地方。真骗子会一直打，直到碰上那个怕的人。</p>
+       <div class="used">${tags}</div>
+       <div class="btns">
+         <button class="btn p" id="again">再试一次</button>
+         <a class="btn g" href="/script">去看真话术</a>
+       </div>`;
+
+  $('#again').onclick = reset;
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+function reset() {
+  turn = 0; over = false; used = []; history = [];
+  chat.innerHTML = '';
+  endEl.className = 'end';
+  endEl.innerHTML = '';
+  cardsEl.style.display = '';
+  roundEl.textContent = '等你出手';
+  renderCards();
+  addMsg('them', '喂？你好，哪位？');
+  history.push({ who: 'victim', text: '喂？你好，哪位？' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+renderCards();
+addMsg('them', '喂？你好，哪位？');
+history.push({ who: 'victim', text: '喂？你好，哪位？' });
+</script>
+</body>
+</html>

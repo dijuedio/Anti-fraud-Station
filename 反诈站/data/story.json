@@ -1,0 +1,203 @@
+{
+ "contacts": [
+  {
+   "id": "mom",
+   "name": "妈",
+   "group": "家人",
+   "avatar": "妈",
+   "color": "#b8543f",
+   "note": "一周一个电话，总说家里都好",
+   "kind": "chat"
+  },
+  {
+   "id": "zhe",
+   "name": "阿哲",
+   "group": "朋友",
+   "avatar": "哲",
+   "color": "#6d4f7a",
+   "note": "合租的室友，比你早来两年",
+   "kind": "chat"
+  },
+  {
+   "id": "wang",
+   "name": "王主管",
+   "group": "工作",
+   "avatar": "王",
+   "color": "#3e5a78",
+   "note": "一家小公司的老板，说话很直",
+   "kind": "chat"
+  },
+  {
+   "id": "ahao",
+   "name": "阿豪",
+   "group": "陌生人",
+   "avatar": "豪",
+   "color": "#4a4a4a",
+   "note": "招聘群里加的你，头像是辆新车",
+   "kind": "chat"
+  },
+  {
+   "id": "kefu",
+   "name": "400-660-8341",
+   "group": "陌生人",
+   "avatar": "?",
+   "color": "#4a4a4a",
+   "note": "没存过的号码，说是平台客服",
+   "kind": "call"
+  },
+  {
+   "id": "credit",
+   "name": "未知号码",
+   "group": "陌生人",
+   "avatar": "?",
+   "color": "#4a4a4a",
+   "note": "打来就说是征信中心",
+   "kind": "call"
+  },
+  {
+   "id": "police",
+   "name": "未知号码",
+   "group": "陌生人",
+   "avatar": "?",
+   "color": "#4a4a4a",
+   "note": "自称刑侦支队，号码查不到归属地",
+   "kind": "call"
+  },
+  {
+   "id": "buyer",
+   "name": "买家·小陈",
+   "group": "陌生人",
+   "avatar": "陈",
+   "color": "#5a4a3e",
+   "note": "二手平台上问价的人",
+   "kind": "chat"
+  },
+  {
+   "id": "stranger",
+   "name": "雨后的海",
+   "group": "陌生人",
+   "avatar": "海",
+   "color": "#3a4a5a",
+   "note": "交友软件上认识的，聊了两周",
+   "kind": "chat"
+  },
+  {
+   "id": "group_shua",
+   "name": "兼职任务群",
+   "group": "陌生人",
+   "avatar": "群",
+   "color": "#4a4a4a",
+   "note": "有人拉你进的群，两百多人",
+   "kind": "chat"
+  }
+ ],
+ "groups": [
+  "家人",
+  "朋友",
+  "工作",
+  "陌生人"
+ ],
+ "order": [
+  {
+   "day": 1,
+   "time": "06:40",
+   "event": "mom_call",
+   "contact": "mom",
+   "bridge": "火车到站是早上六点。你在出站口站了一会儿，才想起来该给家里报个平安。"
+  },
+  {
+   "day": 4,
+   "time": "10:12",
+   "event": "job_ad",
+   "contact": "ahao",
+   "bridge": "你在几个求职群里都留了电话。第二天就有人加你，头像是一辆很亮的新车。"
+  },
+  {
+   "day": 7,
+   "time": "15:30",
+   "event": "normal_hr",
+   "contact": "wang",
+   "bridge": "阿豪那边你没去。投出去的十几份简历里，回得最快的是这家小公司。"
+  },
+  {
+   "day": 11,
+   "time": "20:05",
+   "event": "kefu_call",
+   "contact": "kefu",
+   "bridge": "这几天你在好几个租房、招聘网站上留过手机号。晚上八点，一个陌生号码打了进来。"
+  },
+  {
+   "day": 15,
+   "time": "21:30",
+   "event": "shuadan",
+   "contact": "group_shua",
+   "bridge": "周末晚上没事，你被一个「日结兼职」的群拉了进去。"
+  },
+  {
+   "day": 20,
+   "time": "22:15",
+   "event": "roommate_ask",
+   "contact": "zhe",
+   "bridge": "那天晚上你在客厅算账，阿哲从房间出来倒水，看见了你手机屏幕。"
+  },
+  {
+   "day": 25,
+   "time": "14:02",
+   "event": "credit_call",
+   "contact": "credit",
+   "bridge": "你在手机上搜过一次「征信花了怎么办」。三天后，一个电话打了进来。"
+  },
+  {
+   "day": 31,
+   "time": "20:15",
+   "event": "mom_money",
+   "contact": "mom",
+   "bridge": "这个点妈打电话过来，一般是有事。"
+  },
+  {
+   "day": 38,
+   "time": "10:20",
+   "event": "police_call",
+   "contact": "police",
+   "bridge": "一个查不到归属地的号码，连着打了三遍。"
+  },
+  {
+   "day": 45,
+   "time": "16:40",
+   "event": "secondhand",
+   "contact": "buyer",
+   "bridge": "你想把旧手机卖掉，贴在了二手平台上。下午就有人问价。"
+  },
+  {
+   "day": 52,
+   "time": "23:10",
+   "event": "pig_butcher",
+   "contact": "stranger",
+   "bridge": "交友软件上这个人聊了两周，每天晚上十一点左右都会发消息。"
+  },
+  {
+   "day": 60,
+   "time": "21:00",
+   "event": "mom_home",
+   "contact": "mom",
+   "bridge": "腊月了。妈先发来一张家里的照片，然后打了过来。"
+  }
+ ],
+ "sms": [
+  {
+   "from": "95588",
+   "title": "工商银行",
+   "text": "您尾号 3847 的账户存入 8,000.00 元，余额 8,000.00 元。"
+  },
+  {
+   "from": "1069***",
+   "title": "平台客服",
+   "text": "【平台客服】您有一笔 1,800 元退款未领取，今日 24:00 过期，请点击链接办理。"
+  }
+ ],
+ "notes": [
+  "这个月房租 1200",
+  "简历再改一遍",
+  "妈说别信陌生人，记着点"
+ ]
+}

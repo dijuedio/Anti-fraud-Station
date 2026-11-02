@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>扫一条 · 别接</title>
+<style>
+  :root{--bg:#08090b;--bg2:#0d0f13;--line:rgba(255,255,255,.075);--ink:#f5f6f8;--dim:#8a8f99;--dim2:#5f646d;--green:#2ee6a8;--red:#ff4d4d;--amber:#f5a524}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 "PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{max-width:820px;margin:0 auto;padding:0 22px}
+  header{position:sticky;top:0;z-index:10;background:rgba(8,9,11,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;justify-content:space-between;height:58px}
+  .back{text-decoration:none;color:var(--dim);font-size:13.5px}
+  .back:hover{color:var(--ink)}
+  .left-n{font-size:12.5px;color:var(--dim2)}
+
+  main{padding:36px 0 90px}
+  h1{font-size:28px;margin:0 0 12px;letter-spacing:-.01em}
+  .sub{color:var(--dim);font-size:15px;margin:0 0 8px;max-width:34em}
+  .privacy{font-size:12.5px;color:var(--amber);opacity:.85;margin:0 0 24px}
+
+  .box{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:4px;margin-bottom:14px;transition:.2s}
+  .box:focus-within{border-color:rgba(46,230,168,.45);box-shadow:0 0 0 4px rgba(46,230,168,.06)}
+  textarea{
+    all:unset;display:block;width:100%;min-height:150px;padding:16px;font:15px/1.8 inherit;
+    color:var(--ink);resize:vertical;box-sizing:border-box;
+  }
+  textarea::placeholder{color:var(--dim2)}
+
+  .samples{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .chip{
+    all:unset;cursor:pointer;font-size:12.5px;color:#c9cdd4;border:1px solid var(--line);
+    padding:6px 12px;border-radius:20px;transition:.16s;
+  }
+  .chip:hover{border-color:rgba(46,230,168,.4);color:var(--green)}
+
+  .go{
+    all:unset;cursor:pointer;display:block;width:100%;text-align:center;padding:16px;border-radius:13px;
+    background:var(--green);color:#04120c;font-weight:600;font-size:15.5px;transition:.16s;
+  }
+  .go:hover{filter:brightness(1.06)}
+  .go[disabled]{opacity:.55;cursor:default;filter:none}
+
+  /* 加载 */
+  .loading{display:none;padding:34px 0;text-align:center}
+  .loading.on{display:block}
+  .dots{display:flex;gap:6px;justify-content:center;margin-bottom:16px}
+  .dots i{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.2s infinite}
+  .dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.2;transform:scale(.85)}30%{opacity:1;transform:scale(1)}}
+  .loading p{color:var(--dim);font-size:14px;margin:0}
+
+  /* 结果 */
+  .res{display:none;margin-top:34px;animation:rise .45s both}
+  .res.on{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  .verdict{display:flex;align-items:center;gap:22px;padding:24px;border-radius:18px;margin-bottom:22px;border:1px solid var(--line);background:var(--bg2)}
+  .verdict.high{border-color:rgba(255,77,77,.35);background:linear-gradient(180deg,rgba(255,77,77,.09),rgba(255,77,77,.03))}
+  .verdict.mid{border-color:rgba(245,165,36,.35);background:linear-gradient(180deg,rgba(245,165,36,.09),rgba(245,165,36,.03))}
+  .verdict.low{border-color:rgba(46,230,168,.3);background:linear-gradient(180deg,rgba(46,230,168,.08),rgba(46,230,168,.02))}
+  .pct{font-size:56px;font-weight:700;line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+  .verdict.high .pct{color:var(--red)}
+  .verdict.mid .pct{color:var(--amber)}
+  .verdict.low .pct{color:var(--green)}
+  .pct span{font-size:20px;margin-left:2px;opacity:.6}
+  .vtxt{flex:1;min-width:0}
+  .vtxt b{display:block;font-size:18px;margin-bottom:4px}
+  .vtxt small{color:var(--dim);font-size:13px;line-height:1.6;display:block}
+
+  .sec{margin:0 0 24px}
+  .sec h3{font-size:13px;letter-spacing:.1em;color:var(--dim2);font-weight:500;margin:0 0 12px}
+  .think{
+    background:var(--bg2);border-left:2px solid rgba(255,255,255,.18);border-radius:0 12px 12px 0;
+    padding:16px 18px;font-size:14.5px;line-height:1.95;color:#cfd3da;white-space:pre-wrap;
+  }
+  .think .cur{color:var(--green)}
+
+  .sig{border:1px solid var(--line);border-radius:12px;margin-bottom:9px;overflow:hidden;background:var(--bg2)}
+  .sig q{display:block;quotes:none;padding:13px 16px;font-size:14px;color:#e8eaee;border-bottom:1px solid var(--line)}
+  .sig q::before{content:"“";color:var(--dim2)}
+  .sig q::after{content:"”";color:var(--dim2)}
+  .sig p{margin:0;padding:11px 16px;font-size:13px;color:#b3b8c1;line-height:1.7}
+
+  .advice{padding:16px 18px;border-radius:12px;background:rgba(46,230,168,.07);border-left:2px solid var(--green);font-size:14.5px;line-height:1.8;color:#dcdfe4}
+  .advice b{color:var(--green)}
+
+  .again{all:unset;cursor:pointer;display:block;width:100%;text-align:center;padding:14px;border-radius:12px;border:1px solid var(--line);color:#d6d9de;font-size:14.5px;margin-top:6px}
+  .again:hover{background:rgba(255,255,255,.04)}
+
+  .err{padding:14px 16px;border-radius:12px;background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.28);color:#ffb4ae;font-size:14px;margin-top:16px;display:none}
+  .err.on{display:block}
+
+  .foot{color:var(--dim2);font-size:12.5px;line-height:1.9;margin-top:34px;padding-top:22px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="back" href="/">← 返回</a>
+    <span class="left-n" id="leftN"></span>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>把那句话贴进来。</h1>
+  <p class="sub">短信、微信、通话里听到的话都行。它会逐句告诉你，每一句在干什么。</p>
+  <p class="privacy">别贴真实验证码、密码和身份证号。要贴的话，先改掉几个数字。</p>
+
+  <div class="box">
+    <textarea id="ta" placeholder="比如：&#10;【平台客服】您有一笔 1,800 的退款未领取，请点击 http://… 立即办理，今晚 12 点过期。"></textarea>
+  </div>
+
+  <div class="samples">
+    <button class="chip" data-s="1">示例：假客服退款</button>
+    <button class="chip" data-s="2">示例：正常快递通知</button>
+    <button class="chip" data-s="3">示例：冒充公检法</button>
+  </div>
+
+  <button class="go" id="go">帮我看一下</button>
+
+  <div class="loading" id="loading">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <p id="ltxt">正在读这条消息…</p>
+  </div>
+
+  <div class="err" id="err"></div>
+
+  <div class="res" id="res">
+    <div class="verdict" id="verdict">
+      <div class="pct" id="pct">0<span>%</span></div>
+      <div class="vtxt">
+        <b id="vtitle"></b>
+        <small id="vdesc"></small>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>它怎么想的</h3>
+      <div class="think" id="think"></div>
+    </div>
+
+    <div class="sec">
+      <h3>这几句有问题</h3>
+      <div id="sigs"></div>
+    </div>
+
+    <div class="sec">
+      <h3>现在该干的事</h3>
+      <div class="advice" id="advice"></div>
+    </div>
+
+    <button class="again" id="again">再扫一条</button>
+  </div>
+
+  <p class="foot">
+    这只是帮你看看，不是判决书。模型也会看走眼，尤其是前半段全正常、最后一句才翻脸的那种。<br>
+    拿不准就打 96110，或者把这条消息发给家里人，让他也看一眼。<br>
+    你贴的内容只用于这一次分析，不写数据库、不留存。
+  </p>
+</main>
+
+<script>
+const SAMPLES = {
+  1: '【平台客服】您好，您有一笔 1,800 元的退款一直未领取，因系统升级将于今晚 24:00 过期。请点击 http://tk-refund.top/v2 填写银行卡信息办理，客服工号 0871。',
+  2: '【菜鸟驿站】您的包裹已到阳光小区 3 号楼便利店，取件码 8-2-1047，请于今日 21:00 前取走。',
+  3: '我是市公安局刑侦支队的，你名下银行卡涉嫌一起洗钱案，涉案金额 230 万。这个案子还在侦查阶段，你必须保密，不许告诉家里人。现在带上银行卡，找一个安静的地方，按我说的把钱转到安全账户接受审查。'
+};
+
+const $ = (s) => document.querySelector(s);
+const ta = $('#ta'), goBtn = $('#go'), loading = $('#loading'), ltxt = $('#ltxt');
+const res = $('#res'), errBox = $('#err');
+let busy = false, typingTimer = null;
+
+document.querySelectorAll('.chip').forEach(b => {
+  b.onclick = () => { ta.value = SAMPLES[b.dataset.s]; ta.focus(); };
+});
+
+const STEPS = ['正在读这条消息…', '在找有没有催你的词…', '在看链接和号码对不对得上…', '在想他到底要你干什么…', '快好了…'];
+
+goBtn.onclick = () => run();
+
+async function run() {
+  const text = ta.value.trim();
+  if (text.length < 6) { showErr('太短了，贴一条完整一点的消息。'); return; }
+  if (busy) return;
+
+  busy = true; goBtn.disabled = true; goBtn.textContent = '正在看…';
+  errBox.classList.remove('on'); res.classList.remove('on');
+  loading.classList.add('on');
+  let si = 0; ltxt.textContent = STEPS[0];
+  const tick = setInterval(() => { si = (si + 1) % STEPS.length; ltxt.textContent = STEPS[si]; }, 1800);
+
+  try {
+    const r = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await r.json();
+
+    if (!r.ok || !data.ok) {
+      showErr(data.error || '没能分析出来，稍后再试一次。');
+      return;
+    }
+    render(data.result);
+    if (typeof data.left === 'number') {
+      $('#leftN').textContent = data.left > 0 ? `今天还能看 ${data.left} 条` : '今天的次数用完了';
+    }
+  } catch (e) {
+    showErr('网络好像不通，检查一下再看。');
+  } finally {
+    clearInterval(tick);
+    loading.classList.remove('on');
+    goBtn.disabled = false; goBtn.textContent = '帮我看一下';
+    busy = false;
+  }
+}
+
+function showErr(msg) {
+  errBox.textContent = msg;
+  errBox.classList.add('on');
+}
+
+const TITLES = {
+  high: ['很可能是诈骗', '好几处都是骗子常有的那种破绽。'],
+  mid: ['有疑点，但说不准', '有几处不对劲，但也不是每句都有问题。'],
+  low: ['没看出明显问题', '里面没有让你转账、点链接、报验证码的地方。']
+};
+
+function render(r) {
+  const lvl = r.level || 'mid';
+  const v = $('#verdict');
+  v.className = 'verdict ' + lvl;
+
+  // 数字滚上去
+  const target = Number(r.score) || 0;
+  const el = $('#pct');
+  const t0 = performance.now();
+  const dur = 700;
+  function step(t) {
+    const k = Math.min(1, (t - t0) / dur);
+    const eased = 1 - Math.pow(1 - k, 3);
+    el.innerHTML = Math.round(target * eased) + '<span>%</span>';
+    if (k < 1) requestAnimationFrame(step);
+    else el.innerHTML = target + '<span>%</span>';
+  }
+  requestAnimationFrame(step);
+
+  const [t1, t2] = TITLES[lvl] || TITLES.mid;
+  $('#vtitle').textContent = t1;
+  $('#vdesc').textContent = t2;
+
+  // 思考过程打字机
+  const think = $('#think');
+  think.textContent = '';
+  const txt = r.thinking || '（这次没有返回推理过程）';
+  let i = 0;
+  clearInterval(typingTimer);
+  typingTimer = setInterval(() => {
+    i += 2;
+    think.textContent = txt.slice(0, i);
+    if (i >= txt.length) clearInterval(typingTimer);
+  }, 18);
+  think.onclick = () => { clearInterval(typingTimer); think.textContent = txt; };
+
+  const sigs = $('#sigs');
+  sigs.innerHTML = '';
+  (r.signals || []).forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'sig';
+    d.innerHTML = `<q></q><p></p>`;
+    d.querySelector('q').textContent = s.quote;
+    d.querySelector('p').textContent = s.why || '';
+    sigs.appendChild(d);
+  });
+  if (!r.signals || !r.signals.length) {
+    sigs.innerHTML = '<div class="sig"><p>没有找到特别可疑的句子。</p></div>';
+  }
+
+  const adviceEl = $('#advice');
+  adviceEl.innerHTML = '';
+  const tag = document.createElement('b');
+  tag.textContent = '建议：';
+  adviceEl.appendChild(tag);
+  adviceEl.appendChild(document.createTextNode(r.advice || '拿不准就别操作，先问一个你信得过的人。'));
+
+  res.classList.add('on');
+  try { localStorage.setItem('af.done.scan', '1'); } catch (e) {}
+  res.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+$('#again').onclick = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  ta.value = '';
+  res.classList.remove('on');
+  ta.focus();
+};
+
+// Ctrl/Cmd + Enter 提交
+ta.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+});
+</script>
+</body>
+</html>

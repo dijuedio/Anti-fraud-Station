@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>认一认 · 别接</title>
+<style>
+  :root{--bg:#08090b;--bg2:#0d0f13;--line:rgba(255,255,255,.075);--ink:#f5f6f8;--dim:#8a8f99;--dim2:#5f646d;--green:#2ee6a8;--red:#ff4d4d;--amber:#f5a524}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 "PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+  header{position:sticky;top:0;z-index:10;background:rgba(8,9,11,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;justify-content:space-between;height:58px}
+  .back{text-decoration:none;color:var(--dim);font-size:13.5px}
+  .back:hover{color:var(--ink)}
+  .prog{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .prog b{color:var(--ink)}
+
+  main{padding:34px 0 90px}
+  h1{font-size:26px;margin:0 0 10px;letter-spacing:-.01em}
+  .sub{color:var(--dim);font-size:14.5px;margin:0 0 26px}
+
+  /* 消息卡 */
+  .msg{
+    background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:18px;
+  }
+  .msg .head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .avatar{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#04120c;background:var(--green)}
+  .avatar.gray{background:#2a2f38;color:#9aa0aa}
+  .avatar.red{background:#7a1f1a;color:#ffd9d6}
+  .who{font-size:14px;font-weight:600}
+  .from{font-size:12px;color:var(--dim2)}
+  .body{font-size:15.5px;line-height:1.75;color:#e6e8ec;word-break:break-word}
+  .body a{color:var(--green);text-decoration:underline}
+  .body .hi{color:var(--amber)}
+
+  .opts{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:18px}
+  @media (max-width:560px){.opts{grid-template-columns:1fr 1fr}}
+  .opt{
+    all:unset;cursor:pointer;text-align:center;padding:13px 6px;border-radius:12px;
+    background:#14171d;border:1px solid var(--line);font-size:14.5px;transition:.15s;
+  }
+  .opt:hover{background:#1b1f27;border-color:rgba(255,255,255,.16)}
+  .opt.right{background:rgba(46,230,168,.14);border-color:rgba(46,230,168,.5);color:var(--green)}
+  .opt.wrong{background:rgba(255,77,77,.14);border-color:rgba(255,77,77,.5);color:#ffb4ae}
+  .opt:disabled{cursor:default;opacity:.55}
+  .opt.right:disabled,.opt.wrong:disabled{opacity:1}
+
+  .verdict{padding:18px 20px;border-radius:16px;margin-bottom:16px;display:none}
+  .verdict.on{display:block;animation:rise .3s both}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .verdict.good{background:rgba(46,230,168,.07);border:1px solid rgba(46,230,168,.25)}
+  .verdict.bad{background:rgba(255,77,77,.07);border:1px solid rgba(255,77,77,.28)}
+  .verdict .tag{font-size:12px;letter-spacing:.1em;margin-bottom:10px}
+  .verdict.good .tag{color:var(--green)}
+  .verdict.bad .tag{color:#ff8b84}
+  .verdict ul{margin:0 0 12px;padding-left:18px;color:#cfd3da;font-size:14px;line-height:1.9}
+  .verdict ul li::marker{color:var(--green)}
+  .verdict .right-way{font-size:14px;color:#e6e8ec;background:rgba(0,0,0,.25);padding:11px 14px;border-radius:10px}
+  .verdict .right-way b{color:var(--green);font-weight:600}
+
+  .next{all:unset;cursor:pointer;display:block;width:100%;text-align:center;padding:15px;border-radius:13px;background:var(--green);color:#04120c;font-weight:600;font-size:15px;margin-top:6px}
+  .next:hover{filter:brightness(1.05)}
+
+  /* 结果 */
+  .result{text-align:center;padding:40px 0}
+  .result .score{font-size:64px;font-weight:700;letter-spacing:-.03em;line-height:1}
+  .result .score i{font-style:normal;font-size:22px;color:var(--dim);margin-left:4px}
+  .result .lvl{font-size:17px;margin:14px 0 8px}
+  .result .desc{color:var(--dim);font-size:14.5px;max-width:26em;margin:0 auto 30px}
+  .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .btn{all:unset;cursor:pointer;padding:13px 24px;border-radius:12px;font-size:14.5px;text-align:center}
+  .btn.p{background:var(--green);color:#04120c;font-weight:600}
+  .btn.g{border:1px solid var(--line);color:#d6d9de}
+  .btn.g:hover{background:rgba(255,255,255,.05)}
+
+  .hint{color:var(--dim2);font-size:12.5px;text-align:center;margin-top:26px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="back" href="/">← 返回</a>
+    <div class="prog" id="prog"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<script>
+const QUIZ = [
+  {
+    kind:'sms', name:'95588', label:'工商银行',
+    text:'【工商银行】尊敬的客户，您的账户因涉嫌洗钱被冻结，请点击 http://icbc-safe.com 验证身份，24 小时内未处理将移交司法机关。',
+    answer:'scam',
+    why:[
+      '域名是 icbc-safe.com。真正的工行是 icbc.com.cn。多一个连字符，就是另一家网站，谁都能注册。',
+      '银行不会发短信让你点链接去"验证身份"，也不会在短信里说洗钱、移交司法。',
+      '"24 小时内"是给你上闹钟。你一心想着别过期，就顾不上问别人了。'
+    ],
+    right:'不点链接，直接打 95588 或去柜台问。'
+  },
+  {
+    kind:'sms', name:'菜鸟驿站', label:'取件通知',
+    text:'【菜鸟驿站】您的包裹已到阳光小区 3 号楼便利店，取件码 8-2-1047，请于今日 21:00 前取走。',
+    answer:'ok',
+    why:[
+      '就一个取件码，没有链接，也没让你交钱。',
+      '发件的是驿站，说的也是你手上那件事。',
+      '真要取，下楼去驿站拿就行，不用动任何账户。'
+    ],
+    right:'正常取件即可，不用回任何消息。'
+  },
+  {
+    kind:'chat', name:'兼职群', label:'刷单返利',
+    text:'新人首单，垫付 98 返 120，做完立返！加我领任务，每天轻松三五百，学生宝妈都能做。',
+    answer:'scam',
+    why:[
+      '"垫付"两个字最要紧。钱是你出的，货是没有的。',
+      '第一单他真的返你 120。这钱不是白给的，是为了让你做第二单。',
+      '刷单本身就是违法的假交易。正经兼职不会让人先掏钱。'
+    ],
+    right:'凡是先垫资做任务的兼职，都是诈骗。'
+  },
+  {
+    kind:'chat', name:'王主任', label:'你的领导',
+    text:'小刘，我在开会不方便接电话。有个事你先帮我垫一下，给这个账户转 8000，回头我让财务还你。别跟别人说。',
+    answer:'scam',
+    why:[
+      '头像和名字都对得上。可号是能盗的，头像也是能抄的。',
+      '"在开会，不方便接电话"是最常见的一句。说这句话，就是为了让你没法核实。',
+      '"别跟别人说"才是重点。他要的就是你身边没人。'
+    ],
+    right:'挂断后打他本人的电话核实，声音对不上就是假的。'
+  },
+  {
+    kind:'sms', name:'顺丰速运', label:'理赔通知',
+    text:'【顺丰】您尾号 8823 的快递在运输中丢失，我司将双倍赔付，请添加客服微信 sfbx2024 办理，过期作废。',
+    answer:'scam',
+    why:[
+      '赔付只会从购物 App 或者原来的付款渠道退回，不会让你加谁的私人微信。',
+      '"过期作废"是催人的老话，家家都用这一句。',
+      '加上微信之后，下一步就是让你开屏幕共享，或者直接要验证码。'
+    ],
+    right:'在购物 App 里查物流，或打顺丰官方客服 95338。'
+  },
+  {
+    kind:'sms', name:'12306', label:'购票成功',
+    text:'【铁路12306】您已成功购买 10 月 3 日 G1234 次 08:15 北京南—上海虹桥 二等座 05 车 12F，订单号 E123456789。',
+    answer:'ok',
+    why:[
+      '里面只有车次、座位、订单号。没有链接，也没催你干什么。',
+      '要核实，打开 12306 App 看一眼订单就知道。',
+      '但如果这条短信带了链接，让你点进去改签退票，那就是另一回事。'
+    ],
+    right:'打开 12306 App 核对订单即可。'
+  },
+  {
+    kind:'call', name:'+86 170 **** 3382', label:'来电',
+    text:'"我是京东金融客服，您大学期间开通的校园贷额度需要注销，否则会影响征信。现在按我说的操作，先把额度提出来转到安全账户。"',
+    answer:'scam',
+    why:[
+      '"注销校园贷"这几年特别多，盯的就是刚毕业、怕影响前途的人。',
+      '征信是人行管的。没有哪个平台能帮你"注销额度"，这个操作根本不存在。',
+      '只要听见"安全账户"四个字，就可以挂了。公检法没有这个东西。'
+    ],
+    right:'挂断。征信问题自己去人民银行征信中心查。'
+  },
+  {
+    kind:'sms', name:'招商银行', label:'消费提醒',
+    text:'【招商银行】您尾号 6602 的账户 10 月 2 日 19:47 消费 128.00 元。如非本人操作请致电 95555。',
+    answer:'ok',
+    why:[
+      '只说了一笔消费，没有链接，还让你自己打 95555。',
+      '银行提醒就长这样：金额、时间、卡号尾数、一个官方电话。',
+      '拿不准就打 95555。别点短信里带的东西。'
+    ],
+    right:'打银行卡背面的客服电话核实。'
+  },
+  {
+    kind:'call', name:'未知号码', label:'来电',
+    text:'"这里是市公安局刑侦支队，你名下一张银行卡涉嫌洗钱，涉案金额 230 万。现在对你进行电话笔录，全程保密，不许挂断，不许告诉家人。"',
+    answer:'scam',
+    why:[
+      '公安不会在电话里办案，也没有"电话笔录"这个说法。',
+      '"不许挂断、不许告诉家人"。听到这句就可以挂了，真警察不会拦着你给家里打电话。',
+      '真有事，是请你去派出所，当面出示证件和文书。'
+    ],
+    right:'挂断，打 110 或去就近派出所问一句。'
+  },
+  {
+    kind:'chat', name:'小林', label:'高中同学',
+    text:'在吗？我手机被偷了，这个是新号。能不能先帮我转 3000 应急，明天肯定还你，我这会儿支付宝用不了。',
+    answer:'doubt',
+    why:[
+      '"手机被偷了，这是新号"是盗号诈骗最常见的开场。但他也可能是真的。',
+      '这条消息本身挑不出毛病。问题在于，你没法确认对面是不是他。',
+      '所以别急着下结论，更别急着转钱。'
+    ],
+    right:'先打他原来的号码，或者视频通话确认。核实不了就先不转。'
+  }
+];
+
+const $ = (s) => document.querySelector(s);
+const main = $('#main'), prog = $('#prog');
+let idx = 0, score = 0, answered = false;
+
+const KIND_LABEL = {sms:'短信', chat:'聊天消息', call:'电话'};
+const ANS_LABEL = {ok:'正常', scam:'诈骗', doubt:'存疑'};
+
+function render() {
+  if (idx >= QUIZ.length) return result();
+  const q = QUIZ[idx];
+  answered = false;
+  prog.innerHTML = `<b>${idx + 1}</b> / ${QUIZ.length} · 已答对 ${score}`;
+
+  const avaClass = q.kind === 'call' ? 'red' : (q.kind === 'chat' ? 'gray' : '');
+  main.innerHTML = `
+    <h1>这条消息，你怎么判断？</h1>
+    <p class="sub">${KIND_LABEL[q.kind]} · 来自 ${q.name}</p>
+
+    <div class="msg">
+      <div class="head">
+        <div class="avatar ${avaClass}">${q.kind === 'call' ? '☎' : q.name.slice(0,1)}</div>
+        <div>
+          <div class="who">${q.name}</div>
+          <div class="from">${q.label}</div>
+        </div>
+      </div>
+      <div class="body">${q.text}</div>
+    </div>
+
+    <div class="opts" id="opts">
+      <button class="opt" data-a="ok">正常</button>
+      <button class="opt" data-a="scam">诈骗</button>
+      <button class="opt" data-a="doubt">存疑</button>
+      <button class="opt" data-a="skip">说不准</button>
+    </div>
+
+    <div class="verdict" id="verdict"></div>
+    <button class="next" id="next" hidden>下一题</button>
+  `;
+
+  $('#opts').addEventListener('click', (e) => {
+    const b = e.target.closest('.opt');
+    if (!b || answered) return;
+    pick(b.dataset.a);
+  });
+}
+
+function pick(a) {
+  answered = true;
+  const q = QUIZ[idx];
+  const ok = a === q.answer;
+  if (ok) score++;
+
+  document.querySelectorAll('.opt').forEach(el => {
+    el.disabled = true;
+    if (el.dataset.a === q.answer) { el.classList.add('right'); el.textContent = '✓ ' + el.textContent; }
+    else if (el.dataset.a === a) { el.classList.add('wrong'); el.textContent = '✕ ' + el.textContent; }
+  });
+
+  const v = $('#verdict');
+  v.className = 'verdict on ' + (ok ? 'good' : 'bad');
+  v.innerHTML = `
+    <div class="tag">${ok ? '答对了' : (a === 'skip' ? '这一题确实不好判断' : '答错了')} · 这是「${ANS_LABEL[q.answer]}」</div>
+    <ul>${q.why.map(w => `<li>${w}</li>`).join('')}</ul>
+    <div class="right-way"><b>该怎么做：</b>${q.right}</div>
+  `;
+
+  const n = $('#next');
+  n.hidden = false;
+  n.textContent = idx === QUIZ.length - 1 ? '看结果' : '下一题';
+  n.onclick = () => { idx++; render(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+}
+
+function result() {
+  try { localStorage.setItem('af.done.quiz', '1'); } catch (e) {}
+  prog.innerHTML = `已完成 · ${score} / ${QUIZ.length}`;
+  let lvl, desc, color;
+  if (score >= 9) { lvl = '很难骗到你'; color = 'var(--green)'; desc = '十道题几乎全对。不过真被骗的时候，没人会给你十分钟慢慢看。'; }
+  else if (score >= 7) { lvl = '基本稳得住'; color = 'var(--green)'; desc = '大部分套路你都认得。剩下那两题，就是骗子真会下手的地方。'; }
+  else if (score >= 4) { lvl = '有点悬'; color = 'var(--amber)'; desc = '明显的破绽你看得出来。包装得好的那种，你可能会松口。去看看话术解剖吧。'; }
+  else { lvl = '危险'; color = 'var(--red)'; desc = '不是说你笨。这些套路本来就是照着人的直觉设计的。花五分钟把这一页看完，值。'; }
+
+  main.innerHTML = `
+    <div class="result">
+      <div class="score" style="color:${color}">${score}<i>/ ${QUIZ.length}</i></div>
+      <div class="lvl">${lvl}</div>
+      <p class="desc">${desc}</p>
+      <div class="btns">
+        <a class="btn p" href="/game">去演一次</a>
+        <button class="btn g" id="again">再做一遍</button>
+        <a class="btn g" href="/script">看话术解剖</a>
+      </div>
+      <p class="hint">这一页的题目都是公开案例改写，人名、号码、金额均为虚构。</p>
+    </div>
+  `;
+  $('#again').onclick = () => { idx = 0; score = 0; render(); window.scrollTo({top: 0}); };
+}
+
+render();
+</script>
+</body>
+</html>

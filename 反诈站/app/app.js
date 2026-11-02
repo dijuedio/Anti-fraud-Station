@@ -1,0 +1,1265 @@
+/* 《别接》手机界面版
+   桌面 / 微信 / 短信 / 通话记录 / 备忘录 / 钱包 / 相册
+   剧情按 data/story.json 的固定顺序推进，每个角色一个会话。
+*/
+const $ = (s) => document.querySelector(s);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const ICON = {
+  wechat: '<svg viewBox="0 0 24 24"><ellipse cx="9.2" cy="9.6" rx="7" ry="5.7"/><ellipse cx="16.4" cy="15" rx="5.4" ry="4.3" opacity=".82"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><path d="M6.6 3.6c.4 0 .8.2 1 .6l1.6 2.6c.2.4.2.9-.1 1.2L8 9.3c1 2 2.7 3.7 4.7 4.7l1.3-1.1c.3-.3.8-.3 1.2-.1l2.6 1.6c.4.2.6.6.6 1v2.3c0 .9-.8 1.6-1.7 1.5C10.4 18.7 5.4 13.7 4.7 6.3c-.1-.9.6-1.7 1.5-1.7h.4z"/></svg>',
+  sms: '<svg viewBox="0 0 24 24"><path d="M5 4.5h14a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 19 17.5H9.6L6 20.4V17.5h-1A2.5 2.5 0 0 1 2.5 15V7A2.5 2.5 0 0 1 5 4.5z"/></svg>'
+};
+
+const S = {
+  meta: null, events: [], map: {}, story: null, steps: [],
+  idx: -1, beat: 0, ev: null, contact: null, busy: false, over: false,
+  day: 1, time: '06:40',
+  money: 8000, trust: 50, alert: 50, blackout: 0, kept: 0, flags: [],
+  msgs: {}, unread: {}, calls: [], sms: [], notes: [], ledger: [], log: [],
+  view: 'home', chatWith: null, filter: '全部', tab: 'wx', seq: 0, toast: null,
+  profile: null, edit: '', draft: '', login: null,
+  user: null, authMode: 'login', authName: '', authMsg: '',
+  saved: null, saveT: null
+};
+
+const groups = () => (S.story ? S.story.groups : ['家人']);
+const contact = (id) => (S.story.contacts.find((c) => c.id === id) || { id, name: id, group: '陌生人', avatar: '?', color: '#666', note: '' });
+const unreadAll = () => Object.values(S.unread).reduce((a, b) => a + b, 0);
+const DAY0 = new Date(2026, 8, 1); // 9 月 1 日落地
+
+/* ------------------------------------------------ 玩家档案（名字 / 头像） */
+const AVS = [
+  { e: '🌱', bg: 'linear-gradient(135deg,#8fd0ac,#4c9a78)' },
+  { e: '☕', bg: 'linear-gradient(135deg,#d4b08a,#9c6f4a)' },
+  { e: '🌙', bg: 'linear-gradient(135deg,#9b9cc8,#5a5b8f)' },
+  { e: '🐟', bg: 'linear-gradient(135deg,#8fc4dc,#3f7fa8)' },
+  { e: '🍊', bg: 'linear-gradient(135deg,#f0bb85,#cf7a3a)' },
+  { e: '📚', bg: 'linear-gradient(135deg,#b8aede,#7a6bb0)' },
+  { e: '🌊', bg: 'linear-gradient(135deg,#87c8de,#3f8aa8)' },
+  { e: '🍃', bg: 'linear-gradient(135deg,#b2cf93,#6f9a4e)' }
+];
+const PROFILE_KEY = 'firstyear.profile';
+const AUTH_KEY = 'firstyear.token';
+
+const authToken = () => {
+  try { return localStorage.getItem(AUTH_KEY) || ''; } catch (e) { return ''; }
+};
+function setAuthToken(t) {
+  try { if (t) localStorage.setItem(AUTH_KEY, t); else localStorage.removeItem(AUTH_KEY); } catch (e) {}
+}
+async function api(path, body, method) {
+  const opt = { method: method || (body ? 'POST' : 'GET'), headers: {} };
+  if (body) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  const t = authToken();
+  if (t) opt.headers['Authorization'] = 'Bearer ' + t;
+  try {
+    const r = await fetch(path, opt);
+    let d = {};
+    try { d = await r.json(); } catch (e) {}
+    return { ok: r.ok, status: r.status, data: d };
+  } catch (e) {
+    return { ok: false, status: 0, data: { error: '连不上本地服务' } };
+  }
+}
+function applyUser(u) {
+  saveProfile({ name: u.nickname || u.username, av: u.avatar | 0, img: u.avatar_img || '' });
+  S.user = {
+    username: u.username, nickname: u.nickname, id: u.id,
+    role: u.role || 'user', has_key: !!u.has_key, key_hint: u.key_hint || '',
+    public_left: u.public_left | 0,
+  };
+}
+async function pushProfile() {
+  if (!authToken()) return;
+  const p = S.profile || { name: '', av: 0, img: '' };
+  const r = await api('/api/profile', { nickname: p.name, avatar: p.av | 0, avatar_img: p.img || '' });
+  if (r.ok && r.data.user) {
+    const u = r.data.user;
+    S.user = { username: u.username, nickname: u.nickname, id: u.id,
+      role: u.role || 'user', has_key: !!u.has_key, key_hint: u.key_hint || '',
+      public_left: u.public_left | 0 };
+  }
+}
+
+function loadProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
+    if (p && typeof p.name === 'string') return { name: p.name, av: p.av | 0, img: p.img || '' };
+  } catch (e) {}
+  return null;
+}
+function saveProfile(p) {
+  S.profile = p;
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (e) {}
+}
+function meName() { return (S.profile && S.profile.name) || '我'; }
+
+function meAvatar(size) {
+  const p = S.profile || { av: 0, img: '' };
+  if (p.img) {
+    return `<span class="avatar avimg" style="width:${size}px;height:${size}px;background-image:url('${p.img}')"></span>`;
+  }
+  const a = AVS[(p.av | 0) % AVS.length];
+  return `<span class="avatar" style="width:${size}px;height:${size}px;background:${a.bg};font-size:${Math.round(size * 0.48)}px">${a.e}</span>`;
+}
+
+function avGridHtml(p) {
+  const cur = p || { av: 0, img: '' };
+  return AVS.map((a, i) =>
+    `<button class="avPick ${cur.img ? '' : (i === (cur.av | 0) ? 'on' : '')}" data-av="${i}" style="background:${a.bg}">${a.e}</button>`
+  ).join('') + `<label class="avPick upch" title="上传图片">＋<input type="file" data-avfile="1" accept="image/*" hidden></label>`;
+}
+
+function TOTAL() { return (S.meta && S.meta.days) || 60; }
+
+function dateOf(day) {
+  const d = new Date(DAY0.getTime() + (day - 1) * 86400000);
+  return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+}
+
+/* ------------------------------------------------ 启动 */
+async function boot() {
+  try {
+    const r = await fetch('/api/meta');
+    const d = await r.json();
+    S.meta = d.meta;
+    S.events = d.events;
+    S.story = d.story;
+    d.events.forEach((e) => { S.map[e.id] = e; });
+  } catch (e) {
+    $('#app').innerHTML = '<div class="app"><div class="card">后端没起来。先双击「启动.bat」，或者运行 python server.py。</div></div>';
+    return;
+  }
+  S.steps = S.story.order || [];
+  S.profile = loadProfile();
+  if (authToken()) {
+    const r = await api('/api/me');
+    if (r.ok && r.data.user) {
+      applyUser(r.data.user);
+      if (r.data.user.nickname) return enterGame();
+      return profileScreen();
+    }
+    setAuthToken('');
+  }
+  // 反诈站：演一次是免登录的，不问名字直接开局
+  S.guest = true;
+  if (!S.profile) S.profile = { name: '访客', av: 0, img: '' };
+  startGame();
+}
+
+function startGame() {
+  const st = S.meta.start;
+  Object.assign(S, {
+    idx: -1, beat: 0, ev: null, contact: null, busy: false, over: false,
+    day: 1, time: '06:40',
+    money: st.money, trust: st.trust, alert: st.alert, blackout: 0, kept: 0, flags: [],
+    msgs: {}, unread: {}, calls: [], ledger: [], log: [],
+    sms: (S.story.sms || []).map((x) => ({ ...x, day: 1 })),
+    notes: (S.story.notes || []).map((t) => ({ text: t, done: false })),
+    view: 'home', chatWith: null, filter: '全部', tab: 'wx', seq: 0, toast: null, hint: true
+  });
+  render();
+  setTimeout(nextStep, 900);   // 新局的第一步会自动覆盖旧档
+}
+
+/* ------------------------------------------------ 渲染骨架 */
+function setStatus() {
+  $('#screen').classList.toggle('dark', S.view === 'home' || S.view === 'ending' || !!document.querySelector('.callmask'));
+  $('#stTime').textContent = S.time;
+}
+
+function render() {
+  // 登录页和启动页由 authScreen()/splash() 自己画，别让残留的定时器把它们刷白
+  if (S.view === 'login' || S.view === 'splash') return;
+  setStatus();
+  const app = $('#app');
+  let html = '';
+  if (S.view === 'home') html = viewHome();
+  else if (S.view === 'wechat') html = viewWechat();
+  else if (S.view === 'chat') html = viewChat();
+  else if (S.view === 'sms') html = viewSms();
+  else if (S.view === 'phone') html = viewPhone();
+  else if (S.view === 'notes') html = viewNotes();
+  else if (S.view === 'wallet') html = viewWallet();
+  else if (S.view === 'photos') html = viewPhotos();
+  else if (S.view === 'settings') html = viewSettings();
+  app.innerHTML = html;
+  if (S.toast && S.view !== 'chat') app.insertAdjacentHTML('beforeend', toastHtml());
+  if (S.profile && S.view !== 'home' && S.view !== 'login' && S.view !== 'splash' && !S.over && S.hint) app.insertAdjacentHTML('beforeend', '<div class="barhint">点下面这条横线回桌面</div>');
+  // 聊天页滚到底
+  const m = app.querySelector('.msgs');
+  if (m) m.scrollTop = m.scrollHeight;
+  bind();
+}
+
+function toastHtml() {
+  const c = contact(S.toast.cid);
+  const low = S.view === 'home' ? '' : ' low';
+  return `<div class="toast${low}" data-open="${c.id}">
+    <span class="avatar" style="background:${c.color}">${esc(c.avatar)}</span>
+    <span class="ts">
+      <span class="tn">${esc(c.name)}<span class="tag">${esc(c.group)}</span></span>
+      <span class="tt">${esc((S.toast.text || '').slice(0, 24))}</span>
+    </span>
+    <span class="tm">现在</span>
+  </div>`;
+}
+
+function bind() {
+  // 底部横条 = 回桌面
+  const hb = document.querySelector('.homebar');
+  if (hb) {
+    hb.style.cursor = 'pointer';
+    hb.onclick = () => {
+      if (S.over || S.view === 'login' || S.view === 'splash') return;
+      S.hint = false;
+      S.toast = null;
+      S.view = 'home';
+      render();
+    };
+  }
+  document.querySelectorAll('[data-go]').forEach((b) => {
+    b.onclick = () => {
+      S.view = b.dataset.go;
+      if (b.dataset.clear) S.unread[b.dataset.clear] = 0;
+      render();
+    };
+  });
+  document.querySelectorAll('[data-open]').forEach((b) => {
+    b.onclick = () => openChat(b.dataset.open);
+  });
+  document.querySelectorAll('[data-toast]').forEach((b) => {
+    b.onclick = () => openChat(b.dataset.toast);
+  });
+  document.querySelectorAll('[data-filter]').forEach((b) => {
+    b.onclick = () => { S.filter = b.dataset.filter; render(); };
+  });
+  document.querySelectorAll('[data-tab]').forEach((b) => {
+    b.onclick = () => { S.tab = b.dataset.tab; render(); };
+  });
+  document.querySelectorAll('[data-rep]').forEach((b) => {
+    b.onclick = () => choose(b.dataset.rep, false);
+  });
+  document.querySelectorAll('[data-keep]').forEach((b) => {
+    b.onclick = () => {
+      S.kept++;
+      S.blackout = Math.min(100, S.blackout + 8);
+      push(S.contact, 'sys', '〔你把这句记在心里了〕');
+      saveSoon();
+      render();
+    };
+  });
+  document.querySelectorAll('[data-next]').forEach((b) => {
+    b.onclick = () => nextStep();
+  });
+  document.querySelectorAll('[data-start]').forEach((b) => {
+    b.onclick = () => startGame();
+  });
+  document.querySelectorAll('[data-send]').forEach((b) => {
+    b.onclick = () => sendTyped();
+  });
+  const tin = document.querySelector('#typin');
+  if (tin) {
+    tin.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); sendTyped(); }
+    });
+    tin.addEventListener('input', () => { S.draft = tin.value; });
+    // 发完一句不用再点输入框：每轮渲染后自动把光标放回去
+    if (!S.busy && S.replyStage === 'act' && document.activeElement !== tin) {
+      tin.focus();
+      const n = tin.value.length;
+      try { tin.setSelectionRange(n, n); } catch (e) {}
+    }
+  }
+  const lgName = document.querySelector('#lgName');
+  if (lgName) {
+    lgName.addEventListener('input', () => { S.login.name = lgName.value; });
+    if (document.activeElement !== lgName) { lgName.focus(); }
+  }
+  document.querySelectorAll('[data-av]').forEach((b) => {
+    b.onclick = () => {
+      const p = (S.view === 'login') ? S.login : (S.profile || { name: meName(), av: 0, img: '' });
+      p.av = parseInt(b.dataset.av, 10) || 0;
+      p.img = '';
+      if (S.view === 'login') {
+        document.querySelectorAll('#lgGrid .avPick').forEach((x) => x.classList.remove('on'));
+        b.classList.add('on');
+        $('#lgPreview').innerHTML = meAvatarOf(p, 62);
+      } else {
+        saveProfile({ name: meName(), av: p.av, img: '' });
+        S.edit = '';
+        render();
+        pushProfile();
+      }
+    };
+  });
+  document.querySelectorAll('[data-avfile]').forEach((inp) => {
+    inp.onchange = () => {
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      if (f.size > 900 * 1024) { alert('图片太大了，换一张小于 900KB 的'); return; }
+      const fr = new FileReader();
+      fr.onload = () => {
+        const p = (S.view === 'login') ? S.login : (S.profile || { name: meName(), av: 0, img: '' });
+        p.img = String(fr.result);
+        if (S.view === 'login') {
+          document.querySelectorAll('#lgGrid .avPick').forEach((x) => x.classList.remove('on'));
+          $('#lgPreview').innerHTML = meAvatarOf(p, 62);
+        } else {
+          saveProfile({ name: meName(), av: p.av | 0, img: p.img });
+          S.edit = '';
+          render();
+          pushProfile();
+        }
+      };
+      fr.readAsDataURL(f);
+    };
+  });
+  document.querySelectorAll('[data-login]').forEach((b) => {
+    b.onclick = async () => {
+      const p = S.login || { name: '', av: 0, img: '' };
+      const nm = (p.name || '').trim() || '无名的人';
+      saveProfile({ name: nm.slice(0, 8), av: p.av | 0, img: p.img || '' });
+      S.login = null;
+      await pushProfile();
+      await enterGame();
+    };
+  });
+  document.querySelectorAll('[data-save-name]').forEach((b) => {
+    b.onclick = () => {
+      const v = (document.querySelector('#editName') || {}).value || '';
+      const nm = v.trim().slice(0, 8);
+      if (!nm) { alert('名字总得有一个'); return; }
+      saveProfile({ name: nm, av: (S.profile || {}).av | 0, img: (S.profile || {}).img || '' });
+      S.edit = '';
+      render();
+      pushProfile();
+    };
+  });
+  document.querySelectorAll('[data-edit]').forEach((b) => {
+    b.onclick = () => { S.edit = (b.dataset.edit === 'close') ? '' : b.dataset.edit; render(); };
+  });
+  document.querySelectorAll('[data-key]').forEach((b) => {
+    b.onclick = async () => {
+      if (b.dataset.key === 'edit') { S.edit = 'key'; render(); return; }
+      if (b.dataset.key === 'clear') {
+        if (!confirm('清掉现在这把 key？清掉后就没有 AI 台词了。')) return;
+        const r = await api('/api/key', { action: 'clear' });
+        if (r.ok && r.data.user) applyUser(r.data.user);
+        S.edit = '';
+        render();
+      }
+    };
+  });
+  document.querySelectorAll('[data-save-key]').forEach((b) => {
+    b.onclick = async () => {
+      const msg = (t) => { const m = document.querySelector('#meKeyMsg'); if (m) m.textContent = t; };
+      const key = ((document.querySelector('#meKey') || {}).value || '').trim();
+      const base = ((document.querySelector('#meBase') || {}).value || '').trim();
+      const model = ((document.querySelector('#meModel') || {}).value || '').trim();
+      if (!key) return msg('key 不能空着');
+      msg('正在验证…');
+      b.disabled = true;
+      const r = await api('/api/key', { api_key: key, api_base: base, api_model: model });
+      b.disabled = false;
+      if (!r.ok) return msg(r.data.error || '存不上，再试一次');
+      if (r.data.user) applyUser(r.data.user);
+      S.edit = '';
+      render();
+    };
+  });
+  document.querySelectorAll('[data-admin]').forEach((b) => {
+    b.onclick = () => { location.href = '/admin'; };
+  });
+  document.querySelectorAll('[data-logout]').forEach((b) => {
+    b.onclick = async () => {
+      await api('/api/logout', {}, 'POST');
+      setAuthToken('');
+      S.user = null;
+      S.profile = null;
+      S.login = null;
+      try { localStorage.removeItem(PROFILE_KEY); } catch (e) {}
+      authScreen('login');
+    };
+  });
+  document.querySelectorAll('[data-mode]').forEach((b) => {
+    b.onclick = () => {
+      const nm = (document.querySelector('#auName') || {}).value || '';
+      S.authName = nm.trim();
+      authScreen(b.dataset.mode);
+    };
+  });
+  document.querySelectorAll('[data-submit]').forEach((b) => {
+    b.onclick = () => submitAuth();
+  });
+  document.querySelectorAll('#auName, #auPass, #auPass2').forEach((inp) => {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); submitAuth(); }
+    });
+  });
+  document.querySelectorAll('[data-answer]').forEach((b) => {
+    b.onclick = () => answerCall();
+  });
+  document.querySelectorAll('[data-reject]').forEach((b) => {
+    b.onclick = () => rejectCall();
+  });
+  document.querySelectorAll('[data-resume]').forEach((b) => {
+    b.onclick = () => resumeGame();
+  });
+  document.querySelectorAll('[data-restart]').forEach((b) => {
+    b.onclick = async () => {
+      if (!window.confirm('这一局的进度会清掉，从头再来？')) return;
+      await api('/api/save/reset', {}, 'POST');
+      S.saved = null;
+      startGame();
+    };
+  });
+  document.querySelectorAll('[data-again]').forEach((b) => {
+    b.onclick = async () => {
+      document.querySelector('.endmask')?.remove();
+      await api('/api/save/reset', {}, 'POST');
+      S.saved = null;
+      startGame();
+    };
+  });
+}
+
+/* ------------------------------------------------ 桌面 */
+function viewHome() {
+  const apps = [
+    { id: 'wechat', lb: '微信', color: '#07c160', ic: ICON.wechat, badge: unreadAll() },
+    { id: 'phone', lb: '电话', color: '#42b154', ic: ICON.phone, badge: 0 },
+    { id: 'sms', lb: '信息', color: '#4fbf61', ic: ICON.sms, badge: S.sms.filter((x) => !x.read).length },
+    { id: 'notes', lb: '备忘录', color: '#f0b429', ic: '', ph: '≡' },
+    { id: 'wallet', lb: '钱包', color: '#2f9e8f', ic: '', ph: '¥' },
+    { id: 'photos', lb: '相册', color: '#6a7fa8', ic: '', ph: '◧' },
+    { id: 'settings', lb: '设置', color: '#6e6e73', ic: '', ph: '⚙' }
+  ];
+  const cell = (a) => `
+    <button class="app-i" data-go="${a.id}">
+      <span class="icon" style="background:${a.color}">
+        ${a.ic ? a.ic : `<span class="ph">${a.ph}</span>`}
+        ${a.badge ? `<span class="badge">${a.badge > 99 ? '99+' : a.badge}</span>` : ''}
+      </span>
+      <span class="lb">${a.lb}</span>
+    </button>`;
+  return `
+  <div class="home">
+    <div class="homeClock">${S.time}</div>
+    <div class="homeDate">第 ${S.day} 天 · ${dateOf(S.day)}</div>
+    <div class="grid">${apps.map(cell).join('')}</div>
+    <div class="homeFoot">第 ${S.day} 天 · 还有 ${Math.max(0, TOTAL() - S.day)} 天</div>
+  </div>`;
+}
+
+function authScreen(mode) {
+  S.view = 'login';
+  S.authMode = mode || 'login';
+  S.authMsg = '';
+  const reg = S.authMode === 'register';
+  $('#screen').classList.add('dark');
+  $('#app').innerHTML = `
+  <div class="home login">
+    <div class="lgTop">
+      <div class="lgSub">九 十 天</div>
+      <h1>别接</h1>
+      <p>一座城，八千块。<br>这一年发生的事，都在手机里。</p>
+    </div>
+    <div class="lgCard">
+      <div class="authTabs">
+        <button class="${reg ? '' : 'on'}" data-mode="login">登录</button>
+        <button class="${reg ? 'on' : ''}" data-mode="register">注册</button>
+      </div>
+      <input id="auName" class="lgin" maxlength="20" autocomplete="username"
+             placeholder="用户名（3 到 20 个字）" value="${esc(S.authName || '')}">
+      <input id="auPass" class="lgin" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}"
+             placeholder="密码（至少 6 位）">
+      ${reg ? `<input id="auPass2" class="lgin" type="password" autocomplete="new-password" placeholder="再输一次密码">
+      <input id="auKey" class="lgin" autocomplete="off" spellcheck="false"
+             placeholder="你的 API Key（sk-…，只存在服务器上）">
+      <div style="font-size:11px;line-height:1.5;color:#6b7a85;padding:0 4px 6px">
+        每个人用自己的模型额度，填了才有 AI 台词；不填也能注册，游戏里只会看到固定的兜底台词。
+      </div>` : ''}
+      <div class="authMsg" id="auMsg"></div>
+      <button class="rep go" data-submit="1" style="width:100%;margin-top:4px;padding:12px 0">${reg ? '注册并进入' : '登录'}</button>
+    </div>
+    <p class="lgFoot">账号存在这台电脑的 data/users.db 里</p>
+  </div>`;
+  bind();
+  const n = document.querySelector('#auName');
+  if (n) n.focus();
+}
+
+function profileScreen() {
+  S.view = 'login';
+  const cur = S.login || S.profile || { name: '', av: 0, img: '' };
+  S.login = cur;
+  $('#screen').classList.add('dark');
+  $('#app').innerHTML = `
+  <div class="home login">
+    <div class="lgTop">
+      <div class="lgSub">九 十 天</div>
+      <h1>别接</h1>
+      <p>先给自己留个名字。<br>往后这一年，别人叫你的时候，用的就是它。</p>
+    </div>
+    <div class="lgCard">
+      <div class="lgAv" id="lgPreview">${meAvatarOf(cur, 62)}</div>
+      <input id="lgName" class="lgin" maxlength="8" autocomplete="off"
+             placeholder="给自己起个名字" value="${esc(cur.name)}">
+      <div class="avGrid" id="lgGrid">${avGridHtml(cur)}</div>
+      <button class="rep go" data-login="1" style="width:100%;margin-top:12px;padding:12px 0">进入这座城</button>
+    </div>
+    <p class="lgFoot">人物与事件均为虚构</p>
+  </div>`;
+  bind();
+}
+
+async function submitAuth() {
+  const val = (sel) => (document.querySelector(sel) || {}).value || '';
+  const reg = S.authMode === 'register';
+  const username = val('#auName').trim();
+  const password = val('#auPass');
+  const again = val('#auPass2');
+  const tip = (t) => {
+    S.authMsg = t;
+    const m = document.querySelector('#auMsg');
+    if (m) m.textContent = t;
+  };
+  S.authName = username;
+  if (!username || password.length < 6) return tip('用户名要填，密码至少 6 位');
+  if (reg && again !== password) return tip('两次输入不一样');
+  tip(reg ? '正在注册…' : '正在登录…');
+  const myKey = reg ? ((document.querySelector('#auKey') || {}).value || '').trim() : '';
+  const r = await api(reg ? '/api/register' : '/api/login',
+    reg ? { username, password, api_key: myKey } : { username, password });
+  if (!r.ok) return tip(r.data.error || '出了点问题，再试一次');
+  setAuthToken(r.data.token);
+  applyUser(r.data.user);
+  S.authMsg = '';
+  S.authName = '';
+  if (r.data.user.nickname) return enterGame();
+  return profileScreen();
+}
+
+function splash() {
+  S.view = 'splash';
+  $('#screen').classList.add('dark');
+  $('#app').innerHTML = `
+  <div class="home" style="justify-content:center;align-items:center;text-align:center;padding:0 30px">
+    <div style="font-size:13px;letter-spacing:6px;color:#7d99a8">九 十 天</div>
+    <h1 style="font-size:40px;font-weight:200;letter-spacing:6px;margin:16px 0 8px">别接</h1>
+    <p style="font-size:12.5px;color:#8fa3ae;line-height:2;margin:0">一座城，八千块。<br>这一年发生的事，都在手机里。</p>
+    <div style="margin-top:26px;display:flex;align-items:center;gap:10px;justify-content:center">
+      ${meAvatar(30)}
+      <span style="font-size:13px;color:#9fb3bd">以「${esc(meName())}」的身份</span>
+    </div>
+    ${S.saved && S.saved.data
+      ? `<button class="rep go" data-resume="1" style="margin-top:20px;padding:11px 30px">继续 · 第 ${S.saved.data.day || 1} 天</button>
+    <p style="font-size:11px;color:#5f707a;margin-top:14px"><span data-restart="1" style="cursor:pointer;text-decoration:underline">从头再来</span></p>`
+      : `<button class="rep go" data-start="1" style="margin-top:20px;padding:11px 30px">开始</button>`}
+    <p style="font-size:11px;color:#5f707a;margin-top:30px">人物与事件均为虚构</p>
+    <p style="font-size:11px;color:#4a5a63;margin-top:14px"><span data-logout="1" style="cursor:pointer;text-decoration:underline">换个身份</span></p>
+  </div>`;
+  bind();
+}
+
+/* 登录页预览头像（用临时档案，不写 S.profile） */
+function meAvatarOf(p, size) {
+  if (p.img) return `<span class="avatar avimg" style="width:${size}px;height:${size}px;background-image:url('${p.img}')"></span>`;
+  const a = AVS[(p.av | 0) % AVS.length];
+  return `<span class="avatar" style="width:${size}px;height:${size}px;background:${a.bg};font-size:${Math.round(size * 0.48)}px">${a.e}</span>`;
+}
+
+/* ------------------------------------------------ 微信 */
+function sessionsList() {
+  const list = Object.keys(S.msgs)
+    .map((id) => {
+      const ms = S.msgs[id];
+      const last = [...ms].reverse().find((m) => m.who !== 'sys' && m.who !== 'typing');
+      return { id, last, n: ms.length, unread: S.unread[id] || 0 };
+    })
+    .filter((x) => x.last)
+    .sort((a, b) => b.n - a.n);
+  return list;
+}
+
+function viewWechat() {
+  if (S.tab === 'contacts') return viewContacts();
+  if (S.tab === 'me') return viewMe();
+  const list = sessionsList().filter((x) => S.filter === '全部' || contact(x.id).group === S.filter);
+  const rows = list.map((x) => {
+    const c = contact(x.id);
+    const txt = (x.last.text || '').replace(/\s+/g, ' ').slice(0, 26);
+    return `
+    <button class="sess" data-open="${c.id}">
+      <span class="avatar" style="background:${c.color}">${esc(c.avatar)}</span>
+      <span class="mid">
+        <span class="nm">${esc(c.name)} <span class="tag">${esc(c.group)}</span></span>
+        <span class="last">${x.last.who === 'me' ? '我：' : ''}${esc(txt)}</span>
+      </span>
+      <span class="right">
+        <span>${esc(S.time)}</span>
+        ${x.unread ? `<span class="dot">${x.unread}</span>` : ''}
+      </span>
+    </button>`;
+  }).join('');
+  return `
+  <div class="wx">
+    <div class="nav">微信${unreadAll() ? `（${unreadAll()}）` : ''}</div>
+    <div class="search"><i>⌕</i> 搜索</div>
+    <div class="filters">
+      ${['全部', ...groups()].map((g) => `<button data-filter="${g}" class="${S.filter === g ? 'on' : ''}">${g}</button>`).join('')}
+    </div>
+    <div class="sessions">${rows || '<div class="empty">还没有消息。等等看。</div>'}</div>
+    ${tabbar()}
+  </div>`;
+}
+
+function viewContacts() {
+  const body = groups().map((g) => {
+    const cs = S.story.contacts.filter((c) => c.group === g);
+    if (!cs.length) return '';
+    return `<div class="groupHead">${g}</div>
+      <div style="background:#fff">
+      ${cs.map((c) => `
+        <button class="sess" data-open="${c.id}">
+          <span class="avatar" style="background:${c.color}">${esc(c.avatar)}</span>
+          <span class="mid">
+            <span class="nm">${esc(c.name)}</span>
+            <span class="last">${esc(c.note || '')}</span>
+          </span>
+          ${(S.unread[c.id] || 0) ? `<span class="right"><span class="dot">${S.unread[c.id]}</span></span>` : ''}
+        </button>`).join('')}
+      </div>`;
+  }).join('');
+  return `
+  <div class="wx">
+    <div class="nav">通讯录</div>
+    <div class="sessions" style="background:#f7f7f7">${body}</div>
+    ${tabbar()}
+  </div>`;
+}
+
+function viewMe() {
+  const pct = (v) => Math.max(0, Math.min(100, v));
+  return `
+  <div class="wx">
+    <div class="nav">我</div>
+    <div class="app" style="padding-top:6px">
+      <div class="card" style="display:flex;gap:13px;align-items:center">
+        ${meAvatar(52)}
+        <div style="flex:1">
+          <div style="font-size:17px">${esc(meName())}</div>
+          <div class="muted">二十二岁 · 刚毕业 · 第 ${S.day} 天</div>
+          <div class="uname">@${esc((S.user && S.user.username) || '')}</div>
+        </div>
+        <button class="mini" data-edit="name">改</button>
+      </div>
+      ${S.edit === 'name' ? `
+      <div class="card">
+        <div class="muted" style="margin-bottom:8px">改个名字，最多八个字</div>
+        <input id="editName" class="lgin" maxlength="8" autocomplete="off" value="${esc(meName())}">
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="rep go" data-save-name="1">保存</button>
+          <button class="rep" data-edit="close">算了</button>
+        </div>
+      </div>` : ''}
+      ${S.edit === 'av' ? `
+      <div class="card">
+        <div class="muted" style="margin-bottom:8px">换张头像，也可以传自己的图</div>
+        <div class="avGrid" id="meGrid">${avGridHtml(S.profile)}</div>
+        <div style="margin-top:10px"><button class="rep" data-edit="close">收起</button></div>
+      </div>` : ''}
+      <div class="card">
+        <div class="row"><span class="k">身上还有</span><span class="v">¥ ${S.money.toLocaleString('zh-CN')}</span></div>
+        <div class="row"><span class="k">警惕</span><span class="v">${pct(S.alert)}</span></div>
+        <div class="bar"><i style="width:${pct(S.alert)}%"></i></div>
+        <div class="row" style="margin-top:8px"><span class="k">和人之间的信任</span><span class="v">${pct(S.trust)}</span></div>
+        <div class="bar"><i style="width:${pct(S.trust)}%;background:#4a9edb"></i></div>
+        <div class="row" style="margin-top:8px"><span class="k">变成他们</span><span class="v">${pct(S.blackout)}</span></div>
+        <div class="bar"><i style="width:${pct(S.blackout)}%;background:#c25a4a"></i></div>
+      </div>
+      <div class="card">
+        <div class="row"><span class="k">记下来的话</span><span class="v">${S.kept} 句</span></div>
+        <div class="row"><span class="k">走过的天</span><span class="v">${S.day} / ${TOTAL()}</span></div>
+      </div>
+      <div class="card">
+        <button class="rowbtn" data-key="edit"><span class="k">我的 API Key</span><span class="v">${(S.user && S.user.has_key) ? esc(S.user.key_hint) + ' ›' : '还没填 ›'}</span></button>
+        ${S.edit === 'key' ? `
+        <div style="margin-top:10px">
+          <input id="meKey" class="lgin" autocomplete="off" spellcheck="false" placeholder="sk-…（换一个就覆盖）">
+          <input id="meBase" class="lgin" autocomplete="off" placeholder="接口地址（留空=DeepSeek 官方）">
+          <input id="meModel" class="lgin" autocomplete="off" placeholder="模型名（留空=deepseek-chat）">
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="rep go" data-save-key="1">保存并验证</button>
+            <button class="rep" data-key="clear">清掉</button>
+            <button class="rep" data-edit="close">算了</button>
+          </div>
+          <div class="authMsg" id="meKeyMsg"></div>
+        </div>` : ''}
+        ${(S.user && S.user.role === 'admin') ? '<button class="rowbtn" data-admin="1"><span class="k">后台</span><span class="v">玩家、用量、测试 ›</span></button>' : ''}
+      </div>
+      <div class="card">
+        <button class="rowbtn" data-edit="name"><span class="k">名字</span><span class="v">${esc(meName())} ›</span></button>
+        <button class="rowbtn" data-edit="av"><span class="k">头像</span><span class="v">换一张 ›</span></button>
+        <button class="rowbtn" data-logout="1"><span class="k">退出登录</span><span class="v">›</span></button>
+      </div>
+    </div>
+    ${tabbar()}
+  </div>`;
+}
+
+function tabbar() {
+  const b = unreadAll();
+  return `<div class="tabs">
+    <button data-tab="wx" class="${S.tab === 'wx' ? 'on' : ''}">微信${b ? `<b>${b}</b>` : ''}</button>
+    <button data-tab="contacts" class="${S.tab === 'contacts' ? 'on' : ''}">通讯录</button>
+    <button data-tab="me" class="${S.tab === 'me' ? 'on' : ''}">我</button>
+  </div>`;
+}
+
+/* ------------------------------------------------ 聊天 */
+function viewChat() {
+  const c = contact(S.chatWith);
+  const ms = S.msgs[c.id] || [];
+  const bubbles = ms.map((m) => {
+    if (m.who === 'sys') return `<div class="sys ${m.kind || ''}">${esc(m.text)}</div>`;
+    if (m.who === 'typing') return `<div class="typing"><span class="avatar" style="background:${c.color}">${esc(c.avatar)}</span><span class="dots"><span></span><span></span><span></span></span></div>`;
+    const cls = m.who === 'me' ? 'me' : '';
+    return `<div class="msg ${cls} ${m.fresh ? 'new' : ''}">
+      ${m.who === 'me' ? meAvatar(34) : `<span class="avatar" style="background:${c.color}">${esc(c.avatar)}</span>`}
+      <div class="bub">${esc(m.text)}</div>
+    </div>`;
+  }).join('');
+
+  let replies = '';
+  if (S.ev && S.contact === c.id && !S.busy && S.idx >= 0 && S.steps[S.idx] && S.steps[S.idx].event === S.ev.id && S.replyStage === 'act') {
+    replies = `<div class="replies">${S.ev.actions.map((a) => `<button class="rep" data-rep="${esc(a.label)}">${esc(a.label)}</button>`).join('')}</div>`;
+  }
+  if (S.replyStage === 'settle' && S.contact === c.id) {
+    replies = `<div class="replies">
+      ${S.lastResult === 'pit' ? `<button class="rep keep" data-keep="1">这句话记下了</button>` : ''}
+      <button class="rep go" data-next="1">${S.idx >= S.steps.length - 1 ? '过完这一年' : '继续'}</button>
+    </div>`;
+  }
+
+  return `
+  <div class="chat">
+    <div class="chatNav">
+      <button class="back" data-go="wechat">‹</button>
+      
+      <div>
+        <div class="t">${esc(c.name)}</div>
+        <div class="s">${esc(c.group)}${S.ev && S.contact === c.id ? ' · ' + esc(S.ev.scene) : ''}</div>
+      </div>
+    </div>
+    <div class="msgs">${bubbles || '<div class="empty">还没有消息</div>'}</div>
+    ${replies}
+    ${inputBarHtml(c)}
+  </div>`;
+}
+
+function inputBarHtml(c) {
+  const mine = S.ev && S.contact === c.id;
+  if (mine && !S.busy && S.replyStage === 'act') {
+    return `<div class="inputbar">
+      <input id="typin" class="realin" autocomplete="off" value="${esc(S.draft || '')}"
+             placeholder="点上面的句子，或者自己打字">
+      <button class="sendbtn" data-send="1">发送</button>
+    </div>`;
+  }
+  let hint = '现在不是这一场';
+  if (mine && S.replyStage === 'settle') hint = '这一场聊完了';
+  else if (mine && S.busy) hint = '对方正在打字……';
+  else if (mine) hint = '等对方先开口';
+  return `<div style="padding:16px 18px;text-align:center;color:#8a8f98;font-size:13px">${hint}</div>`;
+}
+
+function openChat(id) {
+  S.chatWith = id;
+  S.draft = '';
+  S.unread[id] = 0;
+  S.toast = null;
+  S.view = 'chat';
+  render();
+}
+
+/* ------------------------------------------------ 其它 App */
+function viewSms() {
+  const items = S.sms.map((s) => `
+    <div class="smsItem">
+      <div class="h"><b>${esc(s.title)}</b><span>第 ${s.day} 天</span></div>
+      <div class="t">${esc(s.text)}</div>
+    </div>`).join('');
+  S.sms.forEach((s) => { s.read = true; });
+  return `<div class="app">
+    <h1>信息</h1>
+    <div class="card">${items || '<div class="muted">没有新短信</div>'}</div>
+    <div class="muted">银行的、验证码的、催缴的，都会落在这里。</div>
+  </div>`;
+}
+
+function viewPhone() {
+  const items = S.calls.slice().reverse().map((c) => `
+    <div class="row"><span class="k">${esc(c.name)} <span class="tag">${esc(c.kind || '来电')}</span></span><span class="v">第 ${c.day} 天 ${esc(c.time || '')}</span></div>`).join('');
+  return `<div class="app">
+    <h1>电话</h1>
+    <div class="card">${items || '<div class="muted">还没有通话记录</div>'}</div>
+    <div class="muted">陌生号码打来的时候，先想一秒：他为什么知道你的名字。</div>
+  </div>`;
+}
+
+function viewNotes() {
+  const items = S.notes.map((n) => `
+    <div class="todo ${n.done ? 'done' : ''}"><span class="check"></span><span>${esc(n.text)}</span></div>`).join('');
+  return `<div class="app">
+    <h1>备忘录</h1>
+    <div class="card">${items || '<div class="muted">空的</div>'}</div>
+  </div>`;
+}
+
+function viewWallet() {
+  const rows = S.ledger.slice().reverse().map((l) => `
+    <div class="row"><span class="k">${esc(l.label)}</span>
+      <span class="v" style="color:${l.amount > 0 ? '#2f8a5b' : '#c25a4a'}">${l.amount > 0 ? '+' : ''}${l.amount.toLocaleString('zh-CN')}</span></div>`).join('');
+  return `<div class="app">
+    <h1>钱包</h1>
+    <div class="card">
+      <div class="muted">余额</div>
+      <div class="money">¥ ${S.money.toLocaleString('zh-CN')}</div>
+      <div class="muted">第 ${S.day} 天 · 一共 ${TOTAL()} 天</div>
+    </div>
+    <div class="card">${rows || '<div class="muted">还没有流水</div>'}</div>
+  </div>`;
+}
+
+function viewPhotos() {
+  const shots = [
+    { day: 1, cap: '出站口，天刚亮', bg: 'linear-gradient(160deg,#2b3a4a,#101820)' },
+    { day: 6, cap: '中介说的「刚出的好房」', bg: 'linear-gradient(160deg,#4a4030,#1a1712)' },
+    { day: 7, cap: '面试的那栋楼', bg: 'linear-gradient(160deg,#3a4658,#141a22)' },
+    { day: 20, cap: '和阿哲算账的那晚', bg: 'linear-gradient(160deg,#5a3f3a,#201514)' },
+    { day: 38, cap: '那个电话打来的时候', bg: 'linear-gradient(160deg,#3d4a3a,#121810)' },
+    { day: 60, cap: '腊月，手机响了', bg: 'linear-gradient(160deg,#556070,#1a2028)' }
+  ].filter((s) => s.day <= S.day);
+  const cells = shots.map((s) => `<div class="photo" style="background:${s.bg}">${esc(s.cap)}</div>`).join('');
+  return `<div class="app">
+    <h1>相册</h1>
+    <div class="grid3">${cells}</div>
+  </div>`;
+}
+
+function viewSettings() {
+  return `<div class="app">
+    <h1>设置</h1>
+    <div class="card">
+      <div class="row"><span class="k">这一局</span><span class="v">第 ${S.day} 天</span></div>
+      <div class="row"><span class="k">踩过的坑</span><span class="v">${S.log.filter((x) => x.result === 'pit').length} 次</span></div>
+      ${S.user && !S.user.has_key ? `<div class="row"><span class="k">今天的说话额度</span><span class="v">${S.user.public_left | 0} 句</span></div>` : ''}
+      <div class="row"><span class="k">存档</span><span class="v">每步自动存到账号</span></div>
+      <div class="row"><span class="k">重开这一局</span><span class="v"><span data-restart="1" style="cursor:pointer;text-decoration:underline;color:#c25a4a">清档重来</span></span></div>
+      <div class="row"><span class="k">版本</span><span class="v">手机界面版 v3</span></div>
+    </div>
+    <div class="card">
+      <div class="muted">人物和事件是虚构的。真遇到事，打 12315、12345，或找当地住建部门、劳动监察。</div>
+    </div>
+  </div>`;
+}
+
+/* ------------------------------------------------ 剧情推进 */
+function push(cid, who, text, extra) {
+  if (!S.msgs[cid]) S.msgs[cid] = [];
+  // 每条消息记下它属于哪一场（ev），取历史时按场次筛，避免同一个人多场戏串味
+  S.msgs[cid].push({ who, text, seq: S.seq++, ev: S.ev ? S.ev.id : null, ...(extra || {}) });
+}
+
+/* ------------------------------------------------ 存档 */
+
+function packSave() {
+  const msgs = {};
+  Object.keys(S.msgs || {}).forEach((k) => {
+    const arr = (S.msgs[k] || []).filter((m) => m.who !== 'typing');
+    if (arr.length) msgs[k] = arr;
+  });
+  return {
+    v: 1,
+    idx: S.idx, beat: S.beat, day: S.day, time: S.time, over: !!S.over,
+    money: S.money, trust: S.trust, alert: S.alert, blackout: S.blackout, kept: S.kept,
+    flags: S.flags || [], msgs, unread: S.unread || {}, calls: S.calls || [],
+    sms: S.sms || [], notes: S.notes || [], ledger: S.ledger || [], log: S.log || [],
+    seq: S.seq || 0, replyStage: S.replyStage || '', lastResult: S.lastResult || '',
+    tab: S.tab || 'wx', filter: S.filter || '全部'
+  };
+}
+
+function unpackSave(d, steps, map) {
+  const step = steps && steps[d.idx | 0];
+  return {
+    idx: d.idx | 0, beat: d.beat | 0, day: d.day || 1, time: d.time || '06:40',
+    over: !!d.over, money: d.money | 0, trust: d.trust | 0, alert: d.alert | 0,
+    blackout: d.blackout | 0, kept: d.kept | 0,
+    flags: Array.isArray(d.flags) ? d.flags : [],
+    msgs: d.msgs || {}, unread: d.unread || {}, calls: d.calls || [],
+    sms: d.sms || [], notes: d.notes || [], ledger: d.ledger || [], log: d.log || [],
+    seq: d.seq | 0, replyStage: d.replyStage || '', lastResult: d.lastResult || '',
+    tab: d.tab || 'wx', filter: d.filter || '全部',
+    ev: step ? map[step.event] : null,
+    contact: step ? step.contact : null,
+    chatWith: step ? step.contact : null,
+    busy: false, toast: null, draft: '', hint: true, saved: null
+  };
+}
+
+function saveSoon() {
+  if (!authToken()) return;
+  clearTimeout(S.saveT);
+  S.saveT = setTimeout(saveNow, 300);
+}
+
+async function saveNow() {
+  if (!authToken()) return;
+  const r = await api('/api/save', { data: packSave() });
+  if (!r.ok) console.warn('[save] 没存上', r.status, r.data && r.data.error);
+}
+
+async function enterGame() {
+  S.saved = null;
+  const r = await api('/api/save');
+  if (r.ok && r.data && r.data.save) S.saved = r.data.save;
+  splash();
+}
+
+function resumeGame() {
+  const d = S.saved && S.saved.data;
+  if (!d) return startGame();
+  Object.assign(S, unpackSave(d, S.steps, S.map));
+  if (S.over) { finish(); return; }          // 已经过完一年：直接把结局调回来
+  if (!S.ev) {
+    S.view = 'home';
+    render();
+    return;
+  }
+  S.view = 'home';
+  S.toast = { cid: S.contact, text: '上次说到这儿了' };
+  render();
+}
+
+function lastEventFor(cid) {
+  const step = S.steps[S.idx];
+  return step && step.contact === cid ? S.map[step.event] : null;
+}
+
+async function nextStep() {
+  if (S.view === 'login' || S.view === 'splash') return;
+  S.idx++;
+  if (S.idx >= S.steps.length) return finish();
+  const step = S.steps[S.idx];
+  const ev = S.map[step.event];
+  S.ev = ev;
+  S.contact = step.contact;
+  S.beat = 0;
+  S.day = step.day;
+  S.time = step.time || '10:00';
+  S.replyStage = '';
+  S.lastResult = '';
+
+  // 每一步都先回到桌面：消息到了，自己点开
+  S.chatWith = step.contact;
+  S.toast = null;
+  if (contact(step.contact).kind !== 'call') S.view = 'home';
+
+  // 前情：固定旁白 + 有条件的旁白
+  const bridge = pickBridge(step);
+  push(step.contact, 'sys', `第 ${step.day} 天 · ${S.time}`);
+  push(step.contact, 'sys', bridge);
+
+  // 短信的伏笔：验证码、分期生效
+  if (step.event === 'kefu_call') {
+    addSms('服务号', '【平台安全】验证码 631428，5 分钟内有效。任何人索要都不要给。');
+  }
+  updateNotes(step.event, null);
+
+  render();
+  const c = contact(step.contact);
+  if (c.kind === 'call') {
+    showCall(c);
+  } else {
+    await deliverOpening(step, ev);
+  }
+  saveSoon();
+}
+
+function pickBridge(step) {
+  if (step.bridge_if) {
+    for (const k of Object.keys(step.bridge_if)) {
+      if (S.flags.includes(k)) return step.bridge_if[k];
+    }
+  }
+  return step.bridge || '';
+}
+
+function addSms(title, text) {
+  S.sms.unshift({ title, text, day: S.day, read: false });
+}
+
+function updateNotes(evId, result) {
+  const map = {
+    job_ad: '招聘：先交钱的活儿，一律不去',
+    normal_hr: '面试：社保从哪个月开始缴，问清楚',
+    kefu_call: '任何要验证码的电话，一律挂掉',
+    shuadan: '垫钱做任务，就是被骗的开始',
+    credit_call: '征信只在人民银行征信中心查',
+    police_call: '公安不会电话办案，没有安全账户',
+    secondhand: '二手交易只走平台担保',
+    pig_butcher: '网上认识的人带你投资，一定是骗局'
+  };
+  if (map[evId] && !S.notes.some((n) => n.text === map[evId])) {
+    S.notes.push({ text: map[evId], done: result === 'good' });
+  }
+}
+
+async function fetchOpen(ev) {
+  // 开场这句由模型现场说；模型不可用时才退回剧本里的那句话
+  try {
+    const r = await fetch('/api/open', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: ev.id, state: snap() })
+    });
+    const d = await r.json();
+    return (d.reply || '').trim() || ev.opening;
+  } catch (e) {
+    return ev.opening;
+  }
+}
+
+async function deliverOpening(step, ev) {
+  const cid = step.contact;
+  push(cid, 'typing', '');
+  render();
+  const line = await fetchOpen(ev);
+  await sleep(450);
+  const i = S.msgs[cid].findIndex((m) => m.who === 'typing');
+  if (i >= 0) S.msgs[cid].splice(i, 1);
+  push(cid, 'them', line, { fresh: true });
+  S.replyStage = 'act';
+  if (S.view !== 'chat' || S.chatWith !== cid) {
+    S.unread[cid] = (S.unread[cid] || 0) + 1;
+    S.toast = { cid, text: line };
+    const mine = cid;
+    setTimeout(() => {
+      if (S.toast && S.toast.cid === mine) { S.toast = null; render(); }
+    }, 4200);
+  }
+  render();
+  markRead();
+}
+
+function markRead() {
+  S.msgs[S.chatWith]?.forEach((m) => { m.fresh = false; });
+}
+
+/* ------------------------------------------------ 来电 */
+function showCall(c) {
+  const app = $('#app');
+  app.insertAdjacentHTML('beforeend', `
+    <div class="callmask">
+      <div class="cav" style="background:${c.color}">${esc(c.avatar)}</div>
+      <div class="cname">${esc(c.name)}</div>
+      <div class="cnum">${esc(c.id === 'kefu' ? '400-6351 · 未知机构' : c.id === 'credit' ? '未知号码 · 归属地不明' : '陌生来电')}</div>
+      <div class="hintx">第 ${S.day} 天 · ${S.time}</div>
+      <div class="btns">
+        <button class="cbtn end" data-reject="1">拒接</button>
+        <button class="cbtn ans" data-answer="1">接听</button>
+      </div>
+    </div>`);
+  bind();
+  S.callPending = c;
+}
+
+async function answerCall() {
+  const c = S.callPending;
+  document.querySelector('.callmask')?.remove();
+  S.calls.push({ name: c.name, day: S.day, time: S.time, kind: '已接' });
+  S.chatWith = c.id;
+  S.unread[c.id] = 0;
+  S.view = 'chat';
+  render();
+  const _st = S.steps[S.idx];
+  if (_st && _st.contact === c.id) await deliverOpening(_st, S.map[_st.event]);
+}
+
+async function rejectCall() {
+  const c = S.callPending;
+  document.querySelector('.callmask')?.remove();
+  S.calls.push({ name: c.name, day: S.day, time: S.time, kind: '已拒接' });
+  push(c.id, 'sys', '你挂了。三十秒后，同一个号码又打进来。');
+  render();
+  await sleep(1100);
+  showCall(c);
+}
+
+/* ------------------------------------------------ 回复 */
+function sendTyped() {
+  const inp = document.querySelector('#typin');
+  if (!inp || S.busy || S.replyStage !== 'act') return;
+  const v = (inp.value || S.draft || '').trim();
+  if (!v) return;
+  inp.value = '';
+  S.draft = '';
+  choose(v, true);
+}
+
+async function choose(label, typed) {
+  if (S.busy) return;
+  // 串台闸：只有这一场对应的那个联系人窗口，才能推进这一场
+  if (!S.ev || !S.contact || S.chatWith !== S.contact) return;
+  S.busy = true;
+  S.replyStage = '';
+  push(S.chatWith, 'me', label, { fresh: true });
+  push(S.chatWith, 'typing', '');
+  render();
+
+  const hist = (S.msgs[S.chatWith] || [])
+    .filter((m) => (m.who === 'me' || m.who === 'them') && m.ev === S.ev.id)
+    .map((m) => ({ who: m.who === 'me' ? 'player' : 'them', text: m.text }))
+    .slice(-8);
+
+  let reply = '……';
+  try {
+    const r = await fetch('/api/talk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: S.ev.id, beat: S.beat, text: label, history: hist, state: snap() })
+    });
+    const d = await r.json();
+    reply = d.reply || '……';
+    try { localStorage.setItem('af.done.game', '1'); } catch (e) {}
+    if (d.public_left != null && S.user) S.user.public_left = d.public_left;
+  } catch (e) { /* 走兜底 */ }
+
+  await sleep(560);
+  const arr = S.msgs[S.chatWith];
+  const i = arr.findIndex((m) => m.who === 'typing');
+  if (i >= 0) arr.splice(i, 1);
+  push(S.chatWith, 'them', reply, { fresh: true });
+  S.beat++;
+  S.busy = false;
+  markRead();
+
+  if (S.beat >= 5) return settle(label, typed);
+  S.replyStage = 'act';
+  saveSoon();
+  render();
+  markRead();
+}
+
+function snap() {
+  return { day: S.day, money: S.money, trust: S.trust, alert: S.alert, blackout: S.blackout, kept: S.kept, flags: S.flags.slice() };
+}
+
+async function mapAction(label) {
+  if (!S.ev) return label;
+  if (S.ev.actions.some((a) => a.label === label)) return label;
+  try {
+    const r = await fetch('/api/judge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: S.ev.id, text: label })
+    });
+    const d = await r.json();
+    if (d.label) return d.label;
+  } catch (e) { /* 归不了类就当没选 */ }
+  return label;
+}
+
+async function settle(label) {
+  const act = await mapAction(label);
+  if (act !== label) push(S.contact, 'sys', '〔按「' + act + '」结算〕');
+  let d = null;
+  const before = S.money;
+  try {
+    const r = await fetch('/api/settle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: S.ev.id, action: act, state: snap() })
+    });
+    d = await r.json();
+  } catch (e) { /* 忽略 */ }
+
+  if (d && d.state) {
+    S.money = d.state.money;
+    S.trust = d.state.trust;
+    S.alert = d.state.alert;
+    S.blackout = d.state.blackout;
+    S.flags = d.state.flags || S.flags;
+  }
+  const result = (d && d.result) || 'neutral';
+  S.lastResult = result;
+  S.log.push({ event: S.ev.id, action: act, result });
+
+  if (S.money !== before) {
+    S.ledger.push({ label: `${S.ev.scene} · ${act}`, amount: S.money - before });
+  }
+  if (result === 'pit') {
+    if (!S.ev.quiet) {                      // 第 15 场不说破，让玩家自己对上第 2 场
+      push(S.contact, 'sys', '〔这句话你记住了〕', { kind: 'pit' });
+      updateNotes(S.ev.id, 'pit');
+    }
+    if (S.flags.includes('gave_code')) addSms('银行', `您尾号 3847 的账户转出 ${Math.abs(S.money - before).toLocaleString('zh-CN')} 元，余额 ${S.money.toLocaleString('zh-CN')} 元。`);
+  } else if (result === 'good') {
+    push(S.contact, 'sys', '〔这一关你躲过去了〕', { kind: 'good' });
+    updateNotes(S.ev.id, 'good');
+  }
+
+  S.replyStage = 'settle';
+  saveSoon();
+  render();
+}
+
+/* ------------------------------------------------ 结局 */
+async function finish() {
+  let data = null;
+  try {
+    const r = await fetch('/api/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state: snap(), log: S.log })
+    });
+    data = await r.json();
+  } catch (e) { /* 忽略 */ }
+
+  const ending = (data && data.ending) || { title: '结束', line: '这一年过完了。' };
+  const hits = (data && data.pits_hit) || [];
+  const all = Object.values(S.msgs).flat()
+    .filter((m) => m.who === 'me' || m.who === 'them')
+    .sort((a, b) => a.seq - b.seq);
+  const firstLine = all.find((m) => m.who === 'them');
+  const lastMine = [...all].reverse().find((m) => m.who === 'me');
+
+  S.over = true;
+  saveSoon();
+  S.view = 'ending';
+  S.time = '23:58';
+  setStatus();
+  $('#app').innerHTML = `
+    <div class="endmask">
+      <div class="tag2">第 ${Math.min(S.day, TOTAL())} 天</div>
+      <h2>${esc(ending.title)}</h2>
+      <div class="line">${esc(ending.line)}</div>
+      ${firstLine ? `<div class="q">「${esc(firstLine.text)}」<br><span style="opacity:.5">六十天前，有人对你说的</span></div>` : ''}
+      ${lastMine ? `<div class="q">「${esc(lastMine.text)}」<br><span style="opacity:.5">今天，你说出去的</span></div>` : ''}
+      <div class="stats">
+        <div><b>${data ? data.score : 0}</b>分</div>
+        <div><b>¥${S.money.toLocaleString('zh-CN')}</b>剩下的钱</div>
+        <div><b>${hits.length}</b>踩的坑</div>
+      </div>
+      ${hits.length ? `<ul>${hits.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
+      <button class="again" data-again="1">重来一次</button>
+    </div>`;
+  bind();
+}
+
+boot();

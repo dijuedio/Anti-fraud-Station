@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>话术解剖 · 别接</title>
+<style>
+  :root{--bg:#08090b;--bg2:#0d0f13;--line:rgba(255,255,255,.075);--ink:#f5f6f8;--dim:#8a8f99;--dim2:#5f646d;--green:#2ee6a8;--red:#ff4d4d;--amber:#f5a524}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 "PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{max-width:900px;margin:0 auto;padding:0 22px}
+  header{position:sticky;top:0;z-index:10;background:rgba(8,9,11,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;justify-content:space-between;height:58px}
+  .back{text-decoration:none;color:var(--dim);font-size:13.5px}
+  .back:hover{color:var(--ink)}
+  .tip{font-size:12.5px;color:var(--dim2)}
+
+  main{padding:36px 0 90px}
+  h1{font-size:28px;margin:0 0 12px;letter-spacing:-.01em;line-height:1.4}
+  .sub{color:var(--dim);font-size:15px;margin:0 0 12px;max-width:36em}
+
+  nav.jump{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 40px}
+  nav.jump a{
+    text-decoration:none;font-size:13px;color:#cfd3da;border:1px solid var(--line);
+    padding:7px 13px;border-radius:20px;transition:.18s;
+  }
+  nav.jump a:hover{border-color:rgba(46,230,168,.4);color:var(--green)}
+
+  .case{margin:0 0 54px;scroll-margin-top:80px}
+  .case-h{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+  .case-h .n{font-size:12px;color:var(--dim2);letter-spacing:.16em}
+  .case-h h2{font-size:21px;margin:0;font-weight:650}
+  .case-meta{font-size:13px;color:var(--dim);margin:0 0 18px}
+  .case-meta b{color:var(--amber);font-weight:400}
+
+  .lines{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--bg2)}
+  .ln{display:grid;grid-template-columns:1.35fr 1fr;gap:0;border-bottom:1px solid var(--line)}
+  .ln:last-child{border-bottom:none}
+  @media (max-width:700px){ .ln{grid-template-columns:1fr} }
+  .ln q{
+    display:block;quotes:none;padding:17px 20px;font-size:15px;line-height:1.7;color:#e8eaee;
+  }
+  .ln q::before{content:"「";color:var(--dim2)}
+  .ln q::after{content:"」";color:var(--dim2)}
+  .ln .why{
+    padding:15px 20px;background:rgba(255,255,255,.018);border-left:1px solid var(--line);
+    font-size:13px;line-height:1.65;color:#b9bdc6;
+  }
+  @media (max-width:700px){ .ln .why{border-left:none;border-top:1px solid var(--line)} }
+  .ln .why b{display:block;color:var(--green);font-size:12px;letter-spacing:.08em;margin-bottom:4px;font-weight:600}
+
+  .verdict{
+    margin-top:14px;padding:15px 18px;border-radius:12px;font-size:14px;line-height:1.75;
+    background:rgba(46,230,168,.06);border-left:2px solid var(--green);color:#dcdfe4;
+  }
+  .verdict b{color:var(--green)}
+
+  .footnote{margin-top:60px;padding-top:26px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;line-height:1.9}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <a class="back" href="/">← 返回</a>
+    <span class="tip">话术拆自公开案例，人名与数字均为虚构</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>一段话拆开看，<br>就没什么神奇的了。</h1>
+  <p class="sub">下面五段是这几年最多的五套剧本。左边是他说的原话，右边说明这句话在起什么作用。看完再听到类似的，你会觉得他说话特别慢。</p>
+
+  <nav class="jump">
+    <a href="#c1">冒充客服退款</a>
+    <a href="#c2">刷单返利</a>
+    <a href="#c3">冒充公检法</a>
+    <a href="#c4">婚恋投资</a>
+    <a href="#c5">AI 换脸借钱</a>
+  </nav>
+
+  <!-- 1 -->
+  <section class="case" id="c1">
+    <div class="case-h"><span class="n">0 1</span><h2>冒充客服退款</h2></div>
+    <p class="case-meta">发案最多的一类。<b>要的不是钱，是验证码。</b></p>
+    <div class="lines">
+      <div class="ln"><q>您好，这里是平台客服，工号 0871。</q><div class="why"><b>建立身份</b>先报个工号，说句您好。你会以为电话那头是个正规公司，其实可能就是几个人挤在一间屋里。</div></div>
+      <div class="ln"><q>您有一笔 1,800 的退款一直没领，今晚十二点就过期了。</q><div class="why"><b>制造损失厌恶</b>他一直在说"你的钱要没了"。怕丢，比想赚更容易让人动。这一点他比谁都清楚。</div></div>
+      <div class="ln"><q>您别急，我这边能看到您的姓名和银行卡尾号 0341，对得上吧？</q><div class="why"><b>伪造权威</b>报出几个你以为只有银行才知道的数字。你一对上，警惕就松了。</div></div>
+      <div class="ln"><q>因为额度比较大，需要您下载一个屏幕共享，我一步步指导您操作。</q><div class="why"><b>引入工具</b>屏幕共享一开，你输的密码、刚收到的验证码，他那边看得一清二楚。</div></div>
+      <div class="ln"><q>为了核实身份，需要您把刚收到的六位验证码念一下。</q><div class="why"><b>偷换概念</b>"核实身份"是他随口找的说法。他要的其实就一样：那六个数字。</div></div>
+    </div>
+    <div class="verdict"><b>破解点在第 4 句。</b>正规客服不会让你开屏幕共享，这一句出现，直接挂断，不用再听。</div>
+  </section>
+
+  <!-- 2 -->
+  <section class="case" id="c2">
+    <div class="case-h"><span class="n">0 2</span><h2>刷单返利</h2></div>
+    <p class="case-meta">学生受害最多的一类。<b>前两单真的会返钱。</b></p>
+    <div class="lines">
+      <div class="ln"><q>招募线上兼职，点赞关注就能挣钱，日结，宝妈学生都能做。</q><div class="why"><b>降低门槛</b>不要技能，不要面试，谁都能干。这一句就把会多想的人筛掉了。</div></div>
+      <div class="ln"><q>先做一单试试，垫付 98，立返 120。放心，我们走平台。</q><div class="why"><b>用小钱买信任</b>这 22 块他亏得起。他要你记住的是"真的返了"，好让你做下一单。</div></div>
+      <div class="ln"><q>这单是组合任务，要连做三单才能一起提现，垫付 2000、12000、30000。</q><div class="why"><b>沉没成本</b>你已经投进去 2000。不继续，前面的就打了水漂。他算准了你舍不得。</div></div>
+      <div class="ln"><q>系统显示您操作失误，账户被冻结，需要缴纳保证金解冻，解冻后一起退。</q><div class="why"><b>无限加码</b>从这句话开始，你交多少都是"还差最后一笔"。</div></div>
+    </div>
+    <div class="verdict"><b>记住一句就够：</b>凡是让你先垫钱的兼职，都是诈骗。刷单本身也是违法的，没有"正规刷单"这回事。</div>
+  </section>
+
+  <!-- 3 -->
+  <section class="case" id="c3">
+    <div class="case-h"><span class="n">0 3</span><h2>冒充公检法</h2></div>
+    <p class="case-meta">单笔损失最大的一类。<b>靠的不是技术，是恐惧。</b></p>
+    <div class="lines">
+      <div class="ln"><q>我是 XX 市公安局刑侦支队的，你是 XXX 本人吗？身份证号 3xxx，对不对？</q><div class="why"><b>先声夺人</b>报出你的身份信息。你的第一反应是"他真查得到"。</div></div>
+      <div class="ln"><q>你名下的一张银行卡涉嫌一起洗钱案，涉案金额 230 万，现在依法对你进行电话笔录。</q><div class="why"><b>制造恐惧</b>"洗钱""涉案"这样的词一出来，人会先慌。慌了就不太想得动。</div></div>
+      <div class="ln"><q>这个案子还在侦查阶段，你必须保密，不能告诉任何人，包括家里人。</q><div class="why"><b>隔离</b>整套话术最关键的就是这一句。你身边没了别人，就只剩他一个人在说话。</div></div>
+      <div class="ln"><q>你现在找一个安静的地方，带上银行卡，按我说的操作，把钱转到安全账户接受审查。</q><div class="why"><b>收网</b>"安全账户"是编出来的。公检法没有这个账户，也不会电话办案。</div></div>
+    </div>
+    <div class="verdict"><b>只要听到"保密、别告诉家人"，就可以挂了。</b>真警察不怕你打电话问别人，躲的才怕。</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="case" id="c4">
+    <div class="case-h"><span class="n">0 4</span><h2>婚恋交友（杀猪盘）</h2></div>
+    <p class="case-meta">周期最长的一类。<b>他花三个月，只为了最后那一句。</b></p>
+    <div class="lines">
+      <div class="ln"><q>我平时不太爱说话，但跟你聊天很舒服。你在哪个城市？</q><div class="why"><b>筛选</b>他挑的不是好看的人，是那种孤单、愿意聊、手里还有点钱的人。</div></div>
+      <div class="ln"><q>我这边在做一点投资，收益还行，回头带你一起，别自己乱投。</q><div class="why"><b>埋钩子</b>先让你知道这事能赚钱。他不急着要钱，先养着。</div></div>
+      <div class="ln"><q>这个平台是我朋友内部开的，你先小额试试，亏了算我的。</q><div class="why"><b>共担风险</b>话说得挺够意思。可平台上的数字，是他自己在后台改的。</div></div>
+      <div class="ln"><q>再投一笔就能把之前的都提出来，就差这一步了，相信我。</q><div class="why"><b>最后一次</b>和刷单一个路子。你永远只差最后一步。</div></div>
+    </div>
+    <div class="verdict"><b>判断标准很简单：</b>网恋对象只要提到"投资、博彩、带你赚钱"，无论感情多真，立刻停。</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="case" id="c5">
+    <div class="case-h"><span class="n">0 5</span><h2>AI 换脸、拟声借钱</h2></div>
+    <p class="case-meta">最新的一类。<b>视频里的人是你爸，声音也是。</b></p>
+    <div class="lines">
+      <div class="ln"><q>（视频通话）儿子，我这边出了点事，需要用钱，你先转我 5 万，别跟你妈说。</q><div class="why"><b>熟悉感</b>脸是对的，声音也是对的。接通那一秒，你可能就不设防了。</div></div>
+      <div class="ln"><q>我现在不方便说太多，你快点，晚了就来不及了。</q><div class="why"><b>制造紧迫</b>他只需要做一件事：不给你时间。</div></div>
+      <div class="ln"><q>别打电话问别人，这事就咱们知道。</q><div class="why"><b>隔离</b>还是那一条：不让你核实的，基本都在骗你。</div></div>
+    </div>
+    <div class="verdict"><b>破解办法只有一个：挂掉，用你存在手机里的号码打回去。</b>脸能造假，回拨过去的号码造不了假。</div>
+  </section>
+
+  <div class="footnote">
+    以上话术根据公安机关公开的典型案例改写，用于识别训练，不是真实录音。<br>
+    真遇到事：挂断，打 96110 或 110；不要用对方提供的任何号码。
+  </div>
+</main>
+
+<script>
+(function(){
+  var marked = false;
+  function mark(){
+    if (marked) return;
+    if (window.scrollY + window.innerHeight >= document.body.scrollHeight - 120) {
+      marked = true;
+      try { localStorage.setItem('af.done.script', '1'); } catch (e) {}
+    }
+  }
+  window.addEventListener('scroll', mark, { passive: true });
+  setTimeout(mark, 1200);
+})();
+</script>
+</body>
+</html>

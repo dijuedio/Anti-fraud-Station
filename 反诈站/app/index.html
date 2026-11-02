@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>别接 · 反诈第一课</title>
+<style>
+  :root{
+    --bg:#08090b; --bg2:#0d0f13; --line:rgba(255,255,255,.075);
+    --ink:#f5f6f8; --dim:#8a8f99; --dim2:#5f646d;
+    --green:#2ee6a8; --red:#ff4d4d; --amber:#f5a524;
+    --max:1080px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.75 "PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    overflow-x:hidden;
+  }
+  a{color:inherit}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+  @media (max-width:640px){ .wrap{padding:0 20px} }
+
+  /* ---------- 顶栏 ---------- */
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:50;height:60px;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 28px;backdrop-filter:blur(14px);
+    background:rgba(8,9,11,.6);border-bottom:1px solid transparent;
+    transition:.3s;
+  }
+  header.solid{background:rgba(8,9,11,.9);border-bottom-color:var(--line)}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:.02em;text-decoration:none}
+  .logo i{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px rgba(255,77,77,.15)}
+  nav{display:flex;gap:26px;font-size:13.5px;color:var(--dim)}
+  nav a{text-decoration:none;transition:.2s}
+  nav a:hover{color:var(--ink)}
+  @media (max-width:720px){ nav{display:none} }
+
+  /* ---------- 首屏 ---------- */
+  .hero{padding:150px 0 90px;position:relative;overflow:hidden}
+  .hero::before{
+    content:"";position:absolute;left:50%;top:-260px;width:900px;height:600px;transform:translateX(-50%);
+    background:radial-gradient(circle,rgba(46,230,168,.10),transparent 65%);pointer-events:none;
+  }
+  .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:60px;align-items:center;position:relative}
+  @media (max-width:860px){
+    .hero{padding:84px 0 20px}
+    .hero-grid{grid-template-columns:1fr;gap:38px}
+    .hero .phone{width:230px;height:296px;border-radius:26px}
+    .callview{padding:20px 16px}
+    .callview .num{font-size:20px;margin:10px 0 3px}
+    .ring{width:54px;height:54px;font-size:22px;margin-top:14px}
+    .callview .hint{font-size:10px;line-height:1.5;margin-top:10px}
+    .callview .hint{font-size:10.5px}
+    .orb{width:48px;height:48px}
+    .orb svg{width:20px;height:20px}
+  }
+
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.16em;
+    color:var(--green);border:1px solid rgba(46,230,168,.3);border-radius:30px;padding:5px 13px;
+  }
+  h1{
+    font-size:clamp(34px,4.6vw,58px);line-height:1.18;letter-spacing:-.01em;
+    margin:22px 0 20px;font-weight:700;
+  }
+  h1 em{font-style:normal;color:var(--green)}
+  .hero p.lead{color:var(--dim);font-size:16.5px;max-width:34em;margin:0 0 30px}
+  .cta-row{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{
+    all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:9px;
+    padding:13px 22px;border-radius:12px;font-size:14.5px;transition:.2s;
+  }
+  .btn.primary{background:var(--green);color:#04120c;font-weight:600}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(46,230,168,.22)}
+  .btn.ghost{border:1px solid var(--line);color:#d6d9de}
+  .btn.ghost:hover{background:rgba(255,255,255,.05)}
+
+  /* 手机 */
+  .phone{
+    width:298px;height:600px;margin:0 auto;border-radius:38px;background:#111318;
+    box-shadow:0 0 0 9px #191b21,0 40px 90px rgba(0,0,0,.75);position:relative;overflow:hidden;
+  }
+  .phone .bar{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:11px;color:#b9bdc6}
+  .callview{padding:26px 22px;text-align:center;height:calc(100% - 30px);display:flex;flex-direction:column;align-items:center;background:radial-gradient(120% 70% at 50% 0%,#1b2530,#0c0e12 60%)}
+  .callview .tag{font-size:11px;letter-spacing:.3em;color:var(--dim2)}
+  .callview .num{font-size:25px;font-weight:600;margin:12px 0 4px;letter-spacing:.02em}
+  .callview .loc{font-size:12px;color:var(--amber)}
+  .ring{
+    width:78px;height:78px;border-radius:50%;background:#1c2028;margin:26px 0 0;
+    display:flex;align-items:center;justify-content:center;font-size:30px;color:#5b6270;position:relative;
+  }
+  .ring::after{content:"";position:absolute;inset:-12px;border-radius:50%;border:1px solid rgba(46,230,168,.4);animation:pulse 1.9s ease-out infinite}
+  @keyframes pulse{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.35);opacity:0}}
+  .callview .hint{margin-top:auto;font-size:11.5px;color:var(--dim2);line-height:1.7}
+  .callview .answer{margin-top:14px;display:flex;gap:34px}
+  .orb{all:unset;cursor:pointer;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .orb.no{background:var(--red)}
+  .orb.yes{background:#22c55e;animation:wig 1.4s ease-in-out infinite}
+  @keyframes wig{0%,100%{transform:rotate(0)}25%{transform:rotate(-9deg)}75%{transform:rotate(9deg)}}
+  .orb svg{width:23px;height:23px;fill:#fff}
+
+  /* ---------- 通用 section ---------- */
+  section{padding:96px 0;border-top:1px solid var(--line)}
+  .sec-head{margin-bottom:46px}
+  .sec-head .k{font-size:12px;letter-spacing:.2em;color:var(--green);margin-bottom:14px}
+  .sec-head h2{font-size:clamp(24px,3vw,36px);line-height:1.35;margin:0 0 14px;font-weight:700;letter-spacing:-.005em}
+  .sec-head p{color:var(--dim);margin:0;max-width:40em;font-size:15.5px}
+
+  /* ---------- 数字 ---------- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  @media (max-width:720px){ .stats{grid-template-columns:1fr} }
+  .stat{background:var(--bg2);padding:30px 26px}
+  .stat b{display:block;font-size:clamp(30px,4vw,44px);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat b i{font-style:normal;font-size:15px;color:var(--dim);margin-left:5px;font-weight:400}
+  .stat span{display:block;color:var(--dim);font-size:13.5px;margin-top:8px;line-height:1.6}
+  .stat.src{display:flex;align-items:center;color:var(--dim2);font-size:12px}
+
+  /* ---------- 五步结构 ---------- */
+  .chain{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;position:relative}
+  @media (max-width:900px){ .chain{grid-template-columns:1fr 1fr} }
+  @media (max-width:520px){ .chain{grid-template-columns:1fr} }
+  .step{
+    background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:20px 18px;position:relative;transition:.25s;
+  }
+  .step:hover{border-color:rgba(46,230,168,.35);transform:translateY(-3px)}
+  .step .n{font-size:11px;color:var(--dim2);letter-spacing:.2em}
+  .step b{display:block;margin:10px 0 8px;font-size:16.5px}
+  .step p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.65}
+  .step.last b{color:var(--red)}
+
+  /* ---------- 十类 ---------- */
+  .types{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:900px){ .types{grid-template-columns:1fr 1fr} }
+  @media (max-width:600px){ .types{grid-template-columns:1fr} }
+  .type{
+    background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:22px 20px;
+    cursor:pointer;transition:.22s;position:relative;
+  }
+  .type:hover{background:#12151b;border-color:rgba(255,255,255,.14)}
+  .type .idx{font-size:11px;color:var(--dim2);letter-spacing:.14em}
+  .type h3{font-size:17px;margin:9px 0 8px;font-weight:600}
+  .type .ess{color:var(--dim);font-size:13.5px;line-height:1.65;margin:0}
+  .type .who{margin-top:14px;font-size:12px;color:var(--dim2)}
+  .type .who b{color:var(--amber);font-weight:400}
+  .type .more{max-height:0;overflow:hidden;transition:max-height .35s ease;border-top:1px solid transparent}
+  .type.open .more{max-height:420px;border-top-color:var(--line);margin-top:16px;padding-top:14px}
+  .type .more ol{margin:0;padding-left:18px;color:var(--dim);font-size:13px;line-height:1.9}
+  .type .more ol li::marker{color:var(--green)}
+  .type .tell{margin-top:12px;font-size:13px;color:#cfd3da;background:rgba(46,230,168,.07);border-left:2px solid var(--green);padding:9px 12px;border-radius:0 8px 8px 0}
+  .type .expand{position:absolute;right:18px;top:22px;color:var(--dim2);font-size:16px;transition:.3s}
+  .type.open .expand{transform:rotate(45deg);color:var(--green)}
+
+  /* ---------- 话术解剖 ---------- */
+  .anat{display:grid;gap:14px}
+  .line{
+    display:grid;grid-template-columns:1fr 260px;gap:26px;align-items:center;
+    background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:20px 22px;
+  }
+  @media (max-width:720px){ .line{grid-template-columns:1fr;gap:12px} }
+  .line q{font-size:16px;line-height:1.7;quotes:none;color:#e9ebef}
+  .line q::before{content:"「";color:var(--dim2)}
+  .line q::after{content:"」";color:var(--dim2)}
+  .line .why{font-size:13px;color:var(--amber);line-height:1.6;border-left:2px solid rgba(245,165,36,.5);padding-left:12px}
+  .line .why b{display:block;color:#f7c46c;font-weight:600;margin-bottom:3px;font-size:12px;letter-spacing:.08em}
+
+  /* ---------- 十个凡是 ---------- */
+  .rules{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  @media (max-width:720px){ .rules{grid-template-columns:1fr} }
+  .rule{background:var(--bg2);padding:20px 22px;display:flex;gap:14px;align-items:flex-start}
+  .rule .n{font-size:12px;color:var(--red);font-variant-numeric:tabular-nums;padding-top:3px;min-width:20px}
+  .rule p{margin:0;font-size:14px;line-height:1.7;color:#dcdfe4}
+  .rule p b{color:var(--green);font-weight:600}
+
+  /* ---------- 怎么办 ---------- */
+  .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:720px){ .acts{grid-template-columns:1fr} }
+  .act{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:26px 22px}
+  .act .big{font-size:26px;font-weight:700;color:var(--green);letter-spacing:-.01em}
+  .act b{display:block;margin:12px 0 8px;font-size:15.5px}
+  .act p{margin:0;color:var(--dim);font-size:13.5px;line-height:1.7}
+
+  footer{padding:54px 0 70px;border-top:1px solid var(--line);color:var(--dim2);font-size:12.5px;line-height:2}
+  footer b{color:var(--dim);font-weight:500}
+
+  /* ---------- 钩子弹层 ---------- */
+  .modal{
+    position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+    background:rgba(4,5,7,.96);backdrop-filter:blur(6px);
+  }
+  .modal.on{display:flex;animation:fadein .3s both}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  .modal .phone{width:340px;height:660px}
+  @media (max-height:720px){ .modal .phone{height:88vh} }
+  .modal .close{all:unset;position:absolute;top:22px;right:26px;cursor:pointer;color:var(--dim);font-size:13px;padding:8px 12px;border-radius:8px}
+  .modal .close:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+
+  .callui{position:absolute;inset:0;display:flex;flex-direction:column;padding:30px 20px 22px;text-align:center;background:radial-gradient(120% 70% at 50% 0%,#1c2734,#0b0d11 60%)}
+  .callui .from{font-size:11px;letter-spacing:.3em;color:var(--dim2)}
+  .callui .who{font-size:26px;font-weight:600;margin-top:12px}
+  .callui .where{font-size:12px;color:var(--amber);margin-top:5px}
+  .callui .ava{width:76px;height:76px;border-radius:50%;background:#1c2028;margin:22px auto 0;display:flex;align-items:center;justify-content:center;font-size:30px;color:#5b6270;position:relative}
+  .callui .ava::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:1px solid rgba(46,230,168,.35);animation:pulse 1.8s ease-out infinite}
+  .callui .timer{font-size:12.5px;color:#cfd3da;margin-top:8px;height:18px;font-variant-numeric:tabular-nums}
+  .callui .wave{display:flex;gap:4px;justify-content:center;align-items:center;height:22px;margin:8px 0}
+  .callui .wave i{width:3px;background:var(--green);border-radius:2px;animation:w 1s ease-in-out infinite}
+  .callui .wave i:nth-child(1){height:8px}
+  .callui .wave i:nth-child(2){height:16px;animation-delay:.12s}
+  .callui .wave i:nth-child(3){height:22px;animation-delay:.24s}
+  .callui .wave i:nth-child(4){height:14px;animation-delay:.36s}
+  .callui .wave i:nth-child(5){height:9px;animation-delay:.48s}
+  @keyframes w{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1.15)}}
+  .subs{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:9px;overflow:hidden;margin-top:8px}
+  .subs p{margin:0;font-size:14px;line-height:1.6;text-align:left;background:rgba(255,255,255,.05);border-radius:11px;padding:8px 12px;animation:rise .3s both}
+  .subs p.key{background:rgba(255,77,77,.13);color:#ffd9d6}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .choices{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .choices[hidden]{display:none}
+  .ch{all:unset;cursor:pointer;text-align:center;padding:12px;border-radius:12px;font-size:14px;background:#1e2128;border:1px solid rgba(255,255,255,.06);transition:.15s}
+  .ch:hover{background:#262a33}
+  .ch.bad{background:rgba(255,77,77,.15);border-color:rgba(255,77,77,.4);color:#ffc9c5}
+  .answer{display:flex;gap:26px;justify-content:center;margin-top:auto;padding-top:10px}
+  .answer[hidden]{display:none}
+
+  .robbed{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;padding:32px 22px;background:linear-gradient(180deg,#2a0705,#5c0b07 60%,#120302);text-align:center}
+  .robbed.on{display:flex;animation:shake .5s cubic-bezier(.36,.07,.19,.97) both}
+  @keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-6px)}40%,60%{transform:translateX(6px)}}
+  .robbed .k{font-size:12px;letter-spacing:.3em;color:#ff9a93}
+  .robbed .amt{font-size:44px;font-weight:700;margin:14px 0 4px;font-variant-numeric:tabular-nums}
+  .robbed .sub{font-size:12.5px;color:#ffb4ae;margin-bottom:20px}
+  .robbed .note{text-align:left;font-size:13px;line-height:1.9;color:#ffe3e0;background:rgba(0,0,0,.3);border-left:3px solid #ff6b60;padding:14px 15px;border-radius:0 9px 9px 0}
+  .robbed .note b{background:rgba(255,255,255,.16);padding:1px 5px;border-radius:4px;color:#fff}
+  .robbed .btn{margin-top:20px;justify-content:center}
+
+  /* ---------- 滚动动画 ---------- */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s cubic-bezier(.22,.61,.36,1),transform .7s cubic-bezier(.22,.61,.36,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ---- 四个入口 ---- */
+  .navhot{color:var(--green)!important;position:relative}
+  #try{padding:96px 0 30px}
+  .grid4{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:34px}
+  @media (max-width:920px){ .grid4{grid-template-columns:1fr 1fr} }
+  @media (max-width:560px){ .grid4{grid-template-columns:1fr} }
+  .mod{
+    display:flex;flex-direction:column;text-decoration:none;color:inherit;background:var(--bg2);
+    border:1px solid var(--line);border-radius:16px;padding:22px 20px;transition:.2s;
+  }
+  .mod:hover{border-color:rgba(46,230,168,.45);transform:translateY(-2px)}
+  .mod .mn{font-size:11px;letter-spacing:.18em;color:var(--dim2);margin-bottom:14px}
+  .mod b{display:block;font-size:17px;margin-bottom:9px;letter-spacing:-.01em}
+  .mod p{margin:0 0 16px;flex:1;font-size:13.5px;color:var(--dim);line-height:1.72}
+  .mod .go{font-size:13px;color:var(--green)}
+  .mod.hot{border-color:rgba(46,230,168,.3);background:linear-gradient(180deg,rgba(46,230,168,.07),var(--bg2))}
+
+  /* ---- 第五张：混进来的诱饵 ---- */
+  .baitcard.locked{
+    background:linear-gradient(155deg,#141210 0%,#0d0c0a 100%)!important;
+    border:1px dashed rgba(245,165,36,.32)!important;box-shadow:none!important;
+  }
+  .baitcard.locked .mn{color:#8d6a3c!important}
+  .baitcard.locked b{color:#bfae94!important}
+  .baitcard.locked p{color:#6f6557!important}
+  .baitcard.locked .go{color:#8d6a3c!important}
+  .baitcard.locked:hover{border-color:rgba(245,165,36,.6)!important;transform:translateY(-2px)}
+  .baitcard.locked::after{display:none}
+  .baitcard.shake{animation:shake .4s}
+  @keyframes shake{0%,100%{transform:none}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+
+  .baitcard.claimed{
+    background:linear-gradient(155deg,#07231a 0%,#06170f 60%,#082019 100%)!important;
+    border-color:rgba(46,230,168,.6)!important;box-shadow:0 8px 30px -14px rgba(46,230,168,.4);
+    cursor:default;
+  }
+  .baitcard.claimed::after{display:none}
+  .baitcard.claimed .mn{color:var(--green)!important}
+  .baitcard.claimed b{color:#eafff7!important}
+  .baitcard.claimed p{color:#8fbfae!important}
+  .baitcard.claimed .go{color:var(--green)!important}
+
+  .baitcard{
+    position:relative;overflow:hidden;
+    background:linear-gradient(155deg,#2b1c07 0%,#1a1207 55%,#21160a 100%)!important;
+    border:1px solid rgba(245,165,36,.55)!important;
+    box-shadow:0 0 0 1px rgba(245,165,36,.08),0 8px 30px -14px rgba(245,165,36,.45);
+  }
+  .baitcard:hover{border-color:rgba(245,165,36,.95)!important;transform:translateY(-3px)}
+  .baitcard .mn{color:#c9a05a!important}
+  .baitcard b{color:#ffd98c!important}
+  .baitcard p{color:#b9a06a!important}
+  .baitcard .go{color:#ffcf6b!important}
+  .baitcard::after{
+    content:"";position:absolute;inset:-40% -120%;pointer-events:none;
+    background:linear-gradient(115deg,transparent 42%,rgba(255,214,140,.16) 50%,transparent 58%);
+    animation:sheen 3.6s ease-in-out infinite;
+  }
+  @keyframes sheen{0%,55%{transform:translateX(-30%)}100%{transform:translateX(30%)}}
+  @media (prefers-reduced-motion:reduce){ .baitcard::after{animation:none} }
+
+  .baitcard.caught{
+    background:linear-gradient(155deg,#2a0d0d 0%,#150808 60%,#1e0a0a 100%)!important;
+    border-color:rgba(255,77,77,.8)!important;
+    box-shadow:0 0 0 1px rgba(255,77,77,.15),0 10px 40px -12px rgba(255,77,77,.5);
+    cursor:default;
+  }
+  .baitcard.caught::after{display:none}
+  .baitcard.caught .mn{color:#ff8b84!important}
+  .baitcard.caught b{color:#fff!important}
+  .baitcard.caught p{color:#c9b0ae!important}
+  .baitcard.caught .go{color:#ff8b84!important;text-decoration:underline;text-underline-offset:3px}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <a class="logo" href="#top"><i></i>别接</a>
+  <nav>
+    <a href="#stats">现状</a>
+    <a href="#how">骗局怎么运转</a>
+    <a href="#types">十种高发</a>
+    <a href="#script">话术解剖</a>
+    <a href="#rules">十个凡是</a>
+    <a href="#act">该怎么做</a>
+    <a href="/scan">扫一条</a>
+    <a href="/reverse" class="navhot">骗一次</a>
+  </nav>
+</header>
+
+<!-- ================= 首屏 ================= -->
+<section class="hero" id="top" style="border-top:none">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">反 诈 第 一 课</span>
+      <h1>所有的骗局，<br>都在<em>抢你的三十秒</em>。</h1>
+      <p class="lead">
+        骗子不指望你笨。他等的就是你着急那一下。人在急的时候容易答应事，也容易不去问别人。他就做这两件事。
+      </p>
+      <div class="cta-row">
+        <button class="btn primary" id="tryCall">
+          接起这个电话
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .7-.2 1l-2.3 2.2z"/></svg>
+        </button>
+        <a class="btn ghost" href="#types">先看十种骗局</a>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="bar"><span>14:22</span><span>▮▮▮ 87%</span></div>
+      <div class="callview">
+        <div class="tag">来 电</div>
+        <div class="num">400-660-8341</div>
+        <div class="loc">未知归属地</div>
+        <div class="ring">?</div>
+        <div class="hint">这个号码不在你的通讯录里。<br>它已经连着打了两次。</div>
+        <div class="answer">
+          <button class="orb no" aria-label="挂断">
+            <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .4-.23.76-.6.94-1.37.68-2.6 1.6-3.6 2.7-.18.2-.44.32-.72.32-.3 0-.56-.12-.76-.32L.3 14.7a1.03 1.03 0 010-1.45C3.34 10.36 7.44 8.6 12 8.6s8.66 1.76 11.7 4.65c.2.2.3.45.3.72 0 .28-.1.53-.3.73l-1.42 1.42c-.2.2-.46.32-.76.32-.28 0-.54-.12-.72-.32-1-1.1-2.23-2.02-3.6-2.7-.37-.18-.6-.54-.6-.94v-3.1A15.4 15.4 0 0012 9z"/></svg>
+          </button>
+          <button class="orb yes" id="tryCall2" aria-label="接听">
+            <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .7-.2 1l-2.3 2.2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 数字 ================= -->
+<section id="stats">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="k">现 状</div>
+      <h2>被骗的人，比你以为的多。</h2>
+      <p>三个数字都来自公安部的公开通报。看完大概只有一个感觉：这事离得比想象中近。</p>
+    </div>
+    <div class="stats reveal">
+      <div class="stat"><b><span data-n="25.8">0</span><i>万起</i></b><span>2025 年全国侦破的电信网络诈骗案件</span></div>
+      <div class="stat"><b><span data-n="36">0</span><i>亿次</i></b><span>一年里被拦下的诈骗电话</span></div>
+      <div class="stat"><b><span data-n="85">0</span><i>%</i></b><span>十类高发骗局占全部电诈案件的比例</span></div>
+    </div>
+    <p style="color:var(--dim2);font-size:12px;margin-top:16px" class="reveal">
+      数据来源：公安部 2026 年 1 月新闻发布会、新华社 2026 年 6 月报道、《2025 版防范电信网络诈骗宣传手册》。
+    </p>
+  </div>
+</section>
+
+<!-- ================= 五步结构 ================= -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="k">骗 局 怎 么 运 转</div>
+      <h2>名字一直在换，走的路数没变。</h2>
+      <p>刷单、投资、客服、公检法，剧本各不相同，但都走这五步。认出第三步，就基本安全了。</p>
+    </div>
+    <div class="chain reveal">
+      <div class="step"><div class="n">0 1</div><b>接近</b><p>陌生来电、短信、群聊、快递里的小卡片。他先让你看见他。</p></div>
+      <div class="step"><div class="n">0 2</div><b>建立信任</b><p>报出你的姓名、尾号和订单号。他知道你的事，不代表他就是真的，但他要你这么想。</p></div>
+      <div class="step"><div class="n">0 3</div><b>制造紧迫</b><p>"今晚十二点失效""两小时后冻结""再不处理就移交"。不管换什么说法，他一定会催。</p></div>
+      <div class="step"><div class="n">0 4</div><b>隔离</b><p>"别挂电话""别告诉家里人""这是保密案件"。说来说去就一个意思：别去问别人。</p></div>
+      <div class="step last"><div class="n">0 5</div><b>取钱</b><p>转账、念验证码、开屏幕共享、寄现金。这一步一旦做完，钱就回不来了。</p></div>
+    </div>
+    <p style="color:var(--dim);font-size:14px;margin-top:26px" class="reveal">
+      第三和第四步往往是同时来的：一边催你，一边让你别问别人。人被这么夹着，很容易乱。<br>挡的办法很土，<b style="color:var(--ink)">先挂掉，再找个真人问一句</b>。
+    </p>
+  </div>
+</section>
+
+<!-- ================= 十类 ================= -->
+<section id="types">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="k">十 种 高 发</div>
+      <h2>公安部列出的十类，占全部案件的 85%。</h2>
+      <p>点开每一张，能看到它分几步走、谁最容易中招、以及一句能当场用上的判断。</p>
+    </div>
+    <div class="types" id="typeGrid"></div>
+  </div>
+</section>
+
+<!-- ================= 话术解剖 ================= -->
+<section id="script">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="k">话 术 解 剖</div>
+      <h2>他说的每一句，都在推着你往前走。</h2>
+      <p>拿一段真的客服退款电话拆开看。听下来你会发现，他绕了那么远，最后只要一样东西：你手机上那六个数字。</p>
+    </div>
+    <div class="anat reveal" id="anatList"></div>
+    <p style="color:var(--dim);font-size:14px;margin-top:26px" class="reveal">
+      以后再接到这种电话，不用分析他说得对不对，就问自己一句：<b style="color:var(--ink)">他现在想让我干什么？</b>
+    </p>
+  </div>
+</section>
+
+<!-- ================= 十个凡是 ================= -->
+<section id="rules">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="k">十 个 凡 是</div>
+      <h2>套路记不住没关系，这十句记住就行。</h2>
+      <p>这是公安部刑侦局和国家反诈中心给的口诀。遇到对应情形，不用分析，直接停。</p>
+    </div>
+    <div class="rules reveal" id="ruleList"></div>
+  </div>
+</section>
+
+<!-- ================= 怎么办 ================= -->
+<section id="act">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="k">该 怎 么 做</div>
+      <h2>真碰上，就做三件事。</h2>
+      <p>别费劲分辨真假，也别跟他多聊。按顺序做完这三件，基本就没事了。</p>
+    </div>
+    <div class="acts reveal">
+      <div class="act">
+        <div class="big">01</div>
+        <b>挂断，然后自己打回去</b>
+        <p>不要用对方给的号码。去官方 App、官网、银行卡背面找号码，或者直接打 96110 问。</p>
+      </div>
+      <div class="act">
+        <div class="big">02</div>
+        <b>钱和码，一个字都不给</b>
+        <p>验证码给了他，钱包就给了他。屏幕共享一开，手机等于递过去。他再怎么催，这两样都不能给。</p>
+      </div>
+      <div class="act">
+        <div class="big">03</div>
+        <b>已经转了，立刻打 110</b>
+        <p>越早报警，越可能止付。保留通话记录、聊天截图、转账凭证，这些都有用。</p>
+      </div>
+    </div>
+    <div class="reveal" style="margin-top:26px;display:flex;gap:12px;flex-wrap:wrap">
+      <a class="btn ghost" href="tel:96110">96110 · 预警劝阻专线</a>
+      <a class="btn ghost" href="tel:12381">12381 · 涉诈预警短信</a>
+      <a class="btn ghost" href="#top">回到开头，再听一次那个电话</a>
+    </div>
+  </div>
+</section>
+
+<section id="try">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">五 个 入 口</div>
+      <h2>光看没用，试一下。</h2>
+      <p class="lead">五个都能直接用，不用注册，不用填手机号。<br>做完任意两个，最后那个盒子会自己亮。</p>
+    </div>
+
+    <div class="grid4">
+      <a class="mod" href="/scan">
+        <div class="mn">0 1</div>
+        <b>扫一条</b>
+        <p>把你刚收到的短信或聊天贴进来。它会逐句告诉你，哪一句不对劲。</p>
+        <span class="go">粘一条试试 →</span>
+      </a>
+      <a class="mod" href="/quiz">
+        <div class="mn">0 2</div>
+        <b>认一认</b>
+        <p>十条消息，你判断哪条是骗局。答完告诉你破绽在哪。</p>
+        <span class="go">做十道题 →</span>
+      </a>
+      <a class="mod" href="/game">
+        <div class="mn">0 3</div>
+        <b>演一次</b>
+        <p>用一台手机，过完一个普通人的一年。每一句回复都算数。</p>
+        <span class="go">进去看看 →</span>
+      </a>
+      <a class="mod" href="/script">
+        <div class="mn">0 4</div>
+        <b>学一学</b>
+        <p>五套剧本，逐句拆开。看清楚他每一句话在干什么。</p>
+        <span class="go">看话术解剖 →</span>
+      </a>
+      <a class="mod hot" href="/reverse">
+        <div class="mn">0 5</div>
+        <b>反过来骗一次</b>
+        <p>这次你演骗子，AI 演一个刚毕业的年轻人。五句话，看你能不能让他念出验证码。</p>
+        <span class="go">去骗一次 →</span>
+      </a>
+      <button class="mod baitcard locked" id="bait" type="button" aria-label="通关奖励">
+        <div class="mn" id="baitMn">🎁 通 关 奖 励</div>
+        <b id="baitTitle">做完任意两项，这里会亮起来</b>
+        <p id="baitDesc">扫一条、认一认、演一次、学一学，随便做两个。</p>
+        <span class="go" id="baitGo">还差 2 项 →</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <b>别接 · 反诈第一课</b><br>
+    页面中的人物、号码、通话内容均为虚构，用于演示常见诈骗话术。<br>
+    数据来源：公安部 2026 年 1 月新闻发布会、新华社 2026 年 6 月报道、公安部刑侦局与国家反诈中心《2025 版防范电信网络诈骗宣传手册》。<br>
+    真遇到事：拨打 110 或 96110，使用国家反诈中心 App。
+  </div>
+</footer>
+
+<!-- ================= 钩子弹层 ================= -->
+<div class="modal" id="modal">
+  <button class="close" id="closeModal">关闭 ✕</button>
+  <div class="phone">
+    <div class="bar"><span>14:22</span><span>▮▮▮ 87%</span></div>
+    <div class="callui" id="callui">
+      <div class="from">来 电</div>
+      <div class="who">400-660-8341</div>
+      <div class="where">未知归属地</div>
+      <div class="ava" id="ava">?</div>
+      <div class="timer" id="timer"></div>
+      <div class="wave" id="wave" hidden><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="subs" id="subs"></div>
+      <div class="choices" id="choices" hidden></div>
+      <div class="answer" id="answer">
+        <button class="orb no" id="hangFirst" aria-label="挂断">
+          <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .4-.23.76-.6.94-1.37.68-2.6 1.6-3.6 2.7-.18.2-.44.32-.72.32-.3 0-.56-.12-.76-.32L.3 14.7a1.03 1.03 0 010-1.45C3.34 10.36 7.44 8.6 12 8.6s8.66 1.76 11.7 4.65c.2.2.3.45.3.72 0 .28-.1.53-.3.73l-1.42 1.42c-.2.2-.46.32-.76.32-.28 0-.54-.12-.72-.32-1-1.1-2.23-2.02-3.6-2.7-.37-.18-.6-.54-.6-.94v-3.1A15.4 15.4 0 0012 9z"/></svg>
+        </button>
+        <button class="orb yes" id="answerBtn" aria-label="接听">
+          <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .7-.2 1l-2.3 2.2z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="robbed" id="robbed">
+      <div class="k">已 转 账</div>
+      <div class="amt">¥<span id="amt">8,000</span></div>
+      <div class="sub" id="rsub">余额 · 刚才还是八千</div>
+      <div class="note">1,800 块，就这样没了，前后 14 秒。<br><br>这段话是照真实案件改的，第三句才是关键：<b>他要的不是钱，是你手机上那六个数字</b>。</div>
+      <button class="btn primary" id="closeRobbed">知道了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 数据 ============ */
+const TYPES = [
+  {n:'刷单返利',ess:'你以为在做兼职，其实你在给骗子的账户充值。',who:'学生、宝妈、待业者',
+   steps:['短信、短视频、群聊里招"点赞员""推广员"，或用免费礼品拉你进群','先让你做几单小任务，真的返你几块几十块','让你下载"内部 App"做进阶任务，垫付的钱越来越多','以"任务未完成""账户冻结"为由，让你继续转账才能提现'],
+   tell:'凡是让你先垫钱的兼职，不管返利截图多真，都是诈骗。'},
+  {n:'虚假网络投资理财',ess:'他给你的不是收益，是让你看见收益的那块屏幕。',who:'有积蓄、想理财的人',
+   steps:['冒充投资导师、基金经理，或在婚恋平台跟你谈恋爱','让你看他"代管"的账户，盈利截图天天涨','让你自己开户注资，小额提现真的能到账','等你加大投入，平台登录不上、账户冻结、客服消失'],
+   tell:'任何说"内幕消息、稳赚不赔"的投资，都不用再看第二眼。'},
+  {n:'虚假购物、服务',ess:'低价是钩子，私下交易才是他的目的。',who:'爱捡漏、急着办事的人',
+   steps:['二手平台、社交群发低价商品、代抢票、代写论文','让你离开平台，加微信私聊，"省手续费"','先收定金，再收"关税""保证金""解冻费"','钱到手就拉黑，平台投诉也追不回'],
+   tell:'只要对方让你绕开平台私下转账，这一单就别做了。'},
+  {n:'冒充电商物流客服',ess:'他不关心你的订单，他关心你手机里那条验证码。',who:'刚下过单、刚收过快递的人',
+   steps:['准确报出你的姓名、订单号、收货地址，先让你信','说商品有质量问题、快递丢了、误开了会员要扣费','让你下载屏幕共享软件，"我一步步教你操作"','在你的屏幕上看着你输密码，或者直接要走验证码'],
+   tell:'任何要求"屏幕共享"的客服，都是骗子，没有例外。'},
+  {n:'贷款、征信',ess:'你缺钱的时候，是他最好下手的时候。',who:'急需用钱、征信有瑕疵的人',
+   steps:['"无抵押、秒放款、不看征信"的广告砸到你面前','下载他的贷款 App，额度显示得很高','提现时提示"卡号填错，账户冻结"，要交解冻费','交了还有"流水不足""保证金"，一直交到你自己放弃'],
+   tell:'正规贷款不会在放款前收你一分钱。收钱的都是骗子。'},
+  {n:'冒充领导、熟人',ess:'他盗的不是你的钱，是你对那个头像的信任。',who:'职场新人、学生干部',
+   steps:['盗用领导、老师、亲戚的头像和昵称，加你好友或混进群','先嘘寒问暖，聊工作聊家常，语气学得很像','突然说自己在开会、不方便接电话，让你帮个忙','让你先垫钱转账，说回头就还'],
+   tell:'凡是熟人借钱，先打一个电话过去。声音对不上就是假的。'},
+  {n:'冒充公检法',ess:'他不需要证据，他只需要你害怕。',who:'独居老人、刚工作的年轻人',
+   steps:['自称警察、检察官，报出你的身份证号，说你涉嫌洗钱','发来"通缉令""逮捕令"，让你上网自己查','要求保密，不许告诉家人，找个安静的地方配合','让你把钱转到"安全账户"接受审查'],
+   tell:'公检法不会电话办案，更不存在"安全账户"。挂了打 110。'},
+  {n:'婚恋交友',ess:'他花几个月陪你，是为了最后那一次开口。',who:'单身、孤独、刚失恋的人',
+   steps:['婚恋网站、社交软件上遇到"完美的人"，照片好看、事业有成','每天陪你聊天，情绪价值给得很足，很快确定关系','说自己在做投资、有内部渠道，带你一起赚钱','等你投入大额资金，人就消失了'],
+   tell:'网恋对象只要提到"投资、博彩、带你赚钱"，立刻停。'},
+  {n:'网络游戏虚假交易',ess:'便宜的道具背后，是一整套"解冻费"流程。',who:'学生、游戏玩家',
+   steps:['低价卖号、卖皮肤、卖点卡，价格低到不合理','让你脱离官方平台，私下交易','说"账户冻结""需要激活"，让你交各种费用','交完就拉黑，账号也没了'],
+   tell:'游戏交易只在官方平台走，私下便宜的一律不要。'},
+  {n:'机票退改签',ess:'他知道你的航班，所以你以为他真的是航空公司。',who:'刚订完票的旅客',
+   steps:['航班信息报得一字不差，说航班取消要赔你钱','让你下载指定软件，或者登录他给的网站','以"验证银行卡"为由，让你开屏幕共享','在你输密码的时候，钱已经被转走'],
+   tell:'退改签只走航空公司官方渠道，别点短信里的链接。'}
+];
+
+const ANAT = [
+  {q:'您好，这里是平台客服，工号 0871。',k:'建立身份',w:'一个编号，一句"您好"，让你以为对面是一个有组织的机构，而不是一个躲在境外的窝点。'},
+  {q:'您有一笔 1,800 的退款一直没领，今晚十二点就过期了。',k:'制造损失厌恶',w:'他不说"给你钱"，他说"你正在损失钱"。人对失去的痛，比得到的快乐强两倍。'},
+  {q:'为了核实身份，需要您把刚收到的六位验证码念一下。',k:'偷换概念',w:'"核实身份"是他自己定义的动作。他要的从来不是身份，是那六个数字。'},
+  {q:'您别挂，系统已经提交了，您配合一下两分钟就好。',k:'拖延 + 服从',w:'先给你一个"只要两分钟"的小承诺，你答应了，后面就很难反悔。'},
+  {q:'我这边能看到您的银行卡尾号 0341，对得上吧？',k:'伪造权威',w:'报出一串你以为只有银行才知道的信息，你的警惕就在这一秒塌掉。'}
+];
+
+const RULES = [
+  '凡是要求<b>垫付资金</b>做任务的兼职刷单，都是诈骗。',
+  '凡是宣称<b>内幕消息、稳赚不赔、高额回报</b>的投资理财，都是诈骗。',
+  '凡是宣称<b>无抵押、秒放款</b>，却先要你交会员费、保证金、解冻费的网贷，都是诈骗。',
+  '凡是自称<b>电商、物流客服</b>，主动以退款理赔为由要你提供银行卡和验证码的，都是诈骗。',
+  '凡是自称<b>公检法</b>，要你把钱打进"安全账户"的，都是诈骗。',
+  '凡是自称<b>领导、熟人</b>，加你社交账号后开口借钱的，都是诈骗。',
+  '凡是发来<b>不明链接</b>，让你输入银行卡号、验证码和密码的，都是诈骗。',
+  '凡是拉你进群、点链接<b>下载 App</b> 做投资退费的，都是诈骗。',
+  '凡是让你用<b>快递、网约车寄送现金或黄金</b>的，都是诈骗。',
+  '凡是要求你<b>打开屏幕共享</b>指导你操作账户的，都是诈骗。'
+];
+
+/* ============ 渲染 ============ */
+const $ = (s) => document.querySelector(s);
+const grid = $('#typeGrid');
+grid.innerHTML = TYPES.map((t, i) => `
+  <div class="type" data-i="${i}">
+    <span class="expand">+</span>
+    <div class="idx">${String(i+1).padStart(2,'0')}</div>
+    <h3>${t.n}</h3>
+    <p class="ess">${t.ess}</p>
+    <div class="who">易中招：<b>${t.who}</b></div>
+    <div class="more">
+      <ol>${t.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+      <div class="tell">${t.tell}</div>
+    </div>
+  </div>`).join('');
+
+grid.addEventListener('click', (e) => {
+  const card = e.target.closest('.type');
+  if (!card) return;
+  card.classList.toggle('open');
+});
+
+$('#anatList').innerHTML = ANAT.map(a => `
+  <div class="line">
+    <q>${a.q}</q>
+    <div class="why"><b>${a.k}</b>${a.w}</div>
+  </div>`).join('');
+
+$('#ruleList').innerHTML = RULES.map((r, i) => `
+  <div class="rule"><div class="n">${String(i+1).padStart(2,'0')}</div><p>${r}</p></div>`).join('');
+
+/* ============ 数字滚动 ============ */
+function countUp(el) {
+  if (el.dataset.done) return;
+  el.dataset.done = '1';
+  const target = parseFloat(el.dataset.n);
+  const dec = String(target).includes('.') ? 1 : 0;
+  const t0 = performance.now(), dur = 1200;
+  (function step(now) {
+    const k = Math.min(1, (now - t0) / dur);
+    const v = target * (1 - Math.pow(1 - k, 3));
+    el.textContent = (dec ? v.toFixed(1) : Math.round(v));
+    if (k < 1) requestAnimationFrame(step);
+    else el.textContent = dec ? target.toFixed(1) : target;
+  })(t0);
+  // 兜底：页签在后台时 rAF 会被节流，到点直接落最终值
+  setTimeout(() => { el.textContent = dec ? target.toFixed(1) : target; }, dur + 120);
+}
+
+/* ============ 滚动出现 ============ */
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add('in');
+    e.target.querySelectorAll('[data-n]').forEach(countUp);
+    io.unobserve(e.target);
+  });
+}, {threshold: .18});
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+// 兜底：某些环境（无头浏览器、旧 Safari）IO 不回调，按位置补一次
+function revealVisible() {
+  document.querySelectorAll('.reveal:not(.in)').forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.top < innerHeight * 0.92) {
+      el.classList.add('in');
+      el.querySelectorAll('[data-n]').forEach(countUp);
+    }
+  });
+}
+setTimeout(revealVisible, 400);
+addEventListener('scroll', revealVisible, {passive: true});
+
+/* ============ 顶栏 ============ */
+const hdr = $('#hdr');
+addEventListener('scroll', () => hdr.classList.toggle('solid', scrollY > 20), {passive: true});
+
+/* ============ 钩子 ============ */
+const modal = $('#modal'), callui = $('#callui'), subs = $('#subs');
+const choices = $('#choices'), answer = $('#answer'), robbed = $('#robbed');
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+let busy = false, timerId = null;
+
+function openModal() {
+  modal.classList.add('on');
+  resetCall();
+}
+['#tryCall', '#tryCall2'].forEach(s => $(s).addEventListener('click', openModal));
+$('#closeModal').addEventListener('click', closeModal);
+$('#closeRobbed').addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+function resetCall() {
+  busy = false;
+  if (timerId) clearInterval(timerId);
+  subs.innerHTML = '';
+  choices.hidden = true; choices.innerHTML = '';
+  answer.hidden = false;
+  robbed.classList.remove('on');
+  callui.style.display = 'flex';
+  $('#ava').style.display = 'flex';
+  $('#timer').textContent = '';
+  $('#wave').hidden = true;
+  $('#amt').textContent = '8,000';
+  $('#rsub').textContent = '余额 · 刚才还是八千';
+}
+
+function closeModal() {
+  modal.classList.remove('on');
+  if (timerId) clearInterval(timerId);
+}
+
+/* 接听 */
+$('#answerBtn').addEventListener('click', async () => {
+  if (busy) return;
+  busy = true;
+  answer.hidden = true;
+  $('#wave').hidden = false;
+  $('#ava').style.display = 'none';
+  startTimer();
+  beep();
+  await playLines([
+    '您好，平台客服，工号 0871。',
+    '您有一笔 1,800 的退款一直没领，今晚十二点就过期了。',
+    '为了核实身份，需要您把刚收到的六位验证码念一下。'
+  ]);
+  showChoices();
+});
+
+/* 直接挂断 */
+$('#hangFirst').addEventListener('click', async () => {
+  if (busy) return;
+  busy = true;
+  answer.hidden = true;
+  addLine('你挂了。这一次你躲过了。');
+  await sleep(1200);
+  addLine('但下一个电话，不一定。', true);
+  await sleep(1600);
+  closeModal();
+});
+
+async function playLines(arr) {
+  for (const t of arr) {
+    const p = addLine('');
+    while (subs.children.length > 3) subs.removeChild(subs.firstChild);
+    for (const ch of t) { p.textContent += ch; await sleep(38); }
+    await sleep(1400);
+  }
+}
+
+function addLine(text, key) {
+  const p = document.createElement('p');
+  if (key) p.className = 'key';
+  p.textContent = text;
+  subs.appendChild(p);
+  return p;
+}
+
+function showChoices() {
+  choices.innerHTML = `
+    <button class="ch" data-a="hang">挂了</button>
+    <button class="ch" data-a="more">继续听</button>
+    <button class="ch bad" data-a="give">照他说的，念了验证码</button>`;
+  choices.hidden = false;
+}
+
+choices.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-a]');
+  if (!b) return;
+  const a = b.dataset.a;
+  if (a === 'give') return robbedNow();
+  if (a === 'hang') {
+    choices.hidden = true;
+    addLine('你挂了。这一次你躲过了。');
+    await sleep(1200);
+    addLine('但下一个电话，不一定。', true);
+    await sleep(1600);
+    return closeModal();
+  }
+  choices.hidden = true;
+  await playLines([
+    '您别挂，系统已经提交了，您配合一下两分钟就好。',
+    '我这边能看到您的银行卡尾号 0341，对得上吧？'
+  ]);
+  showChoices();
+});
+
+function robbedNow() {
+  choices.hidden = true;
+  robbed.classList.add('on');
+  rollMoney(8000, 6200, 900);
+}
+
+function rollMoney(from, to, dur) {
+  const el = $('#amt'), t0 = performance.now();
+  (function step(now) {
+    const k = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - k, 3);
+    el.textContent = Math.round(from + (to - from) * e).toLocaleString('zh-CN');
+    if (k < 1) requestAnimationFrame(step);
+    else $('#rsub').textContent = '余额 · 少了 1,800';
+  })(t0);
+}
+
+function startTimer() {
+  let s = 0;
+  timerId = setInterval(() => {
+    s++;
+    $('#timer').textContent = '通话中 ' + String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }, 1000);
+}
+
+function beep() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = 520;
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.26);
+    o.connect(g).connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.28);
+  } catch (e) {}
+}
+</script>
+
+<script>
+(function(){
+  var b = document.getElementById('bait');
+  if (!b) return;
+  var KEYS = [['scan','扫一条'],['quiz','认一认'],['game','演一次'],['script','学一学'],['reverse','反过来骗一次']];
+  var mn = document.getElementById('baitMn'),
+      ti = document.getElementById('baitTitle'),
+      de = document.getElementById('baitDesc'),
+      go = document.getElementById('baitGo');
+
+  function done(){
+    return KEYS.filter(function(k){ return localStorage.getItem('af.done.' + k[0]) === '1'; });
+  }
+
+  function refresh(){
+    var d = done(), n = d.length;
+    if (n === 0) {
+      b.className = 'mod baitcard locked';
+      mn.textContent = '🎁 通 关 奖 励';
+      ti.textContent = '做完任意两项，这里会亮起来';
+      de.textContent = '下面五个，随便做两个。';
+      go.textContent = '还差 2 项 →';
+    } else if (n === 1) {
+      b.className = 'mod baitcard locked';
+      mn.textContent = '🎁 通 关 奖 励';
+      ti.textContent = '还差一项就解锁';
+      de.textContent = '已完成：' + d[0][1] + '。再做一个就行。';
+      go.textContent = '还差 1 项 →';
+    } else if (n < KEYS.length) {
+      b.className = 'mod baitcard';
+      mn.textContent = '🎁 已 解 锁';
+      ti.textContent = '奖励可以领了';
+      de.textContent = '已完成 ' + n + ' 项：' + d.map(function(x){return x[1];}).join('、') + '。';
+      go.textContent = '点开领取 →';
+    } else {
+      b.className = 'mod baitcard';
+      mn.textContent = '🎁 全 部 完 成';
+      ti.textContent = '四项都做完了，来领一份';
+      de.textContent = '扫一条、认一认、演一次、学一学，一项没落下。';
+      go.textContent = '点开领取 →';
+    }
+  }
+
+  b.addEventListener('click', function(){
+    if (b.classList.contains('claimed')) return;
+    var d = done(), n = d.length;
+    if (n < 2) {
+      b.classList.add('shake');
+      setTimeout(function(){ b.classList.remove('shake'); }, 420);
+      var rest = KEYS.filter(function(k){ return localStorage.getItem('af.done.' + k[0]) !== '1'; })
+                     .map(function(k){ return k[1]; }).join('、');
+      de.textContent = '还差：' + rest + '。';
+      return;
+    }
+    // 领取
+    var no = localStorage.getItem('af.badge');
+    if (!no) {
+      no = String(Math.floor(Math.random() * 900000) + 100000);
+      localStorage.setItem('af.badge', no);
+    }
+    b.className = 'mod baitcard claimed';
+    b.setAttribute('aria-label', '已领取');
+    mn.textContent = '✦ 反 诈 结 业';
+    ti.textContent = '你没有被骗。';
+    de.textContent = '凭证 No.' + no + ' · 真正的奖励，是你到现在还一分钱没少。';
+    go.textContent = '分享给家里人看看 →';
+    localStorage.setItem('af.done.all', '1');
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>
