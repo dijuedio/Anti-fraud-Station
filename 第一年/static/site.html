@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>别接 · 反诈互动站</title>
+<style>
+  :root{
+    --bg:#0a0a0c; --ink:#f2f2f4; --dim:#8b8b94;
+    --red:#e2302a; --green:#22c55e; --accent:#2ee6a8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.6 "PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .wrap{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
+
+  /* ---------- 手机 ---------- */
+  .phone{
+    position:relative;width:360px;height:72vh;min-height:560px;max-height:760px;
+    background:#111114;border-radius:34px;
+    box-shadow:0 0 0 8px #1b1b20,0 40px 80px rgba(0,0,0,.7);
+    overflow:hidden;
+  }
+  @media (max-width:420px){ .phone{width:100%;height:88vh;border-radius:26px;box-shadow:0 0 0 4px #1b1b20} }
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column}
+
+  /* ---------- 黑屏开场 ---------- */
+  #hookLine{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#000;z-index:40;transition:opacity .6s;
+    font-size:20px;letter-spacing:.12em;color:#e9e9ee;
+  }
+  #hookLine.out{opacity:0;pointer-events:none}
+  #hookLine span::after{
+    content:"";display:inline-block;width:8px;height:2px;background:currentColor;
+    margin-left:6px;vertical-align:middle;animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:0}}
+
+  /* ---------- 来电 ---------- */
+  .call{
+    position:absolute;inset:0;z-index:30;
+    background:radial-gradient(120% 80% at 50% 0%,#1d2733 0%,#0d0f13 55%,#08080a 100%);
+    display:flex;flex-direction:column;align-items:center;
+    padding:52px 24px 34px;text-align:center;
+  }
+  .call .from{font-size:12px;letter-spacing:.3em;color:var(--dim)}
+  .call .who{
+    font-size:30px;font-weight:600;letter-spacing:.06em;margin-top:14px;
+  }
+  .call .where{font-size:12px;color:#f59e0b;margin-top:6px;letter-spacing:.08em}
+  .ava{
+    width:96px;height:96px;border-radius:50%;margin:26px 0 8px;
+    background:#20242c;display:flex;align-items:center;justify-content:center;
+    font-size:38px;color:#5b6270;position:relative;
+  }
+  .ava::after{
+    content:"";position:absolute;inset:-10px;border-radius:50%;
+    border:1px solid rgba(46,230,168,.35);animation:pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:scale(.9);opacity:.8}100%{transform:scale(1.25);opacity:0}}
+  .timer{font-variant-numeric:tabular-nums;color:#cfd3da;font-size:13px;margin-top:4px;height:18px}
+
+  /* 声波 */
+  .wave{display:flex;gap:4px;align-items:center;height:34px;margin:18px 0}
+  .wave i{width:3px;background:var(--accent);border-radius:2px;opacity:.85;animation:w 1s ease-in-out infinite}
+  .wave i:nth-child(1){height:8px;animation-delay:0s}
+  .wave i:nth-child(2){height:18px;animation-delay:.12s}
+  .wave i:nth-child(3){height:28px;animation-delay:.24s}
+  .wave i:nth-child(4){height:16px;animation-delay:.36s}
+  .wave i:nth-child(5){height:10px;animation-delay:.48s}
+  @keyframes w{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1.2)}}
+
+  /* 字幕 */
+  .subs{
+    flex:1;width:100%;overflow:hidden;display:flex;flex-direction:column;
+    justify-content:flex-end;gap:10px;padding:0 2px 8px;
+  }
+  .subs p{
+    margin:0;font-size:15.5px;line-height:1.65;color:#e8e9ee;
+    background:rgba(255,255,255,.045);border-radius:12px;padding:10px 13px;
+    text-align:left;animation:rise .35s ease both;
+  }
+  .subs p.key{background:rgba(226,48,42,.13);color:#ffd9d6}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  /* 按钮 */
+  .acts{display:flex;flex-direction:column;gap:10px;width:100%;padding-top:6px}
+  .acts[hidden]{display:none}
+  .btn{
+    all:unset;cursor:pointer;text-align:center;padding:14px;border-radius:14px;
+    font-size:15px;background:#1e2128;color:#e8e9ee;transition:.18s;
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .btn:hover{background:#262a33;transform:translateY(-1px)}
+  .btn.bad{background:rgba(226,48,42,.16);border-color:rgba(226,48,42,.45);color:#ffc9c5}
+  .btn.bad:hover{background:rgba(226,48,42,.26)}
+  .btn.good{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.4);color:#bdf5d1}
+
+  .answerRow{display:flex;gap:26px;margin-top:auto;padding-bottom:6px}
+  .circle{
+    all:unset;cursor:pointer;width:64px;height:64px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--green);color:#04120a;transition:.18s;
+    box-shadow:0 0 0 10px rgba(34,197,94,.08);
+  }
+  .circle.red{background:var(--red);color:#fff;box-shadow:0 0 0 10px rgba(226,48,42,.08)}
+  .circle:hover{transform:scale(1.06)}
+  .circle svg{width:26px;height:26px;fill:currentColor}
+
+  /* ---------- 红屏结算 ---------- */
+  #robbed{
+    position:absolute;inset:0;z-index:50;display:none;
+    background:linear-gradient(180deg,#2a0705,#5c0b07 60%,#120302);
+    padding:40px 26px;flex-direction:column;justify-content:center;text-align:center;
+  }
+  #robbed.on{display:flex;animation:shake .5s cubic-bezier(.36,.07,.19,.97) both}
+  @keyframes shake{
+    10%,90%{transform:translate(-2px,0)}20%,80%{transform:translate(4px,0)}
+    30%,50%,70%{transform:translate(-7px,0)}40%,60%{transform:translate(7px,0)}
+  }
+  .rTitle{font-size:13px;letter-spacing:.34em;color:#ff9a93}
+  .money{
+    font-size:52px;font-weight:700;font-variant-numeric:tabular-nums;
+    margin:18px 0 6px;letter-spacing:.02em;color:#fff;
+  }
+  .money small{font-size:20px;font-weight:400;opacity:.6;margin-right:4px}
+  .rSub{font-size:13px;color:#ffb4ae;margin-bottom:26px}
+  .rNote{
+    font-size:14px;line-height:2;color:#ffe3e0;text-align:left;
+    background:rgba(0,0,0,.3);border-left:3px solid #ff6b60;padding:16px 18px;border-radius:0 10px 10px 0;
+  }
+  .rNote b{color:#fff;background:rgba(255,255,255,.14);padding:1px 5px;border-radius:4px}
+  .rActs{margin-top:26px;display:flex;flex-direction:column;gap:10px}
+
+  /* ---------- 主站 ---------- */
+  #site{
+    position:absolute;inset:0;z-index:60;display:none;overflow-y:auto;
+    background:linear-gradient(180deg,#0b0c0f,#111318);
+    padding:32px 24px 18px;
+  }
+  #site.on{display:block;animation:fade .5s both}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  #site h1{font-size:22px;line-height:1.45;margin:0 0 7px;letter-spacing:.01em}
+  #site h1 em{font-style:normal;color:var(--accent)}
+  #site .lead{color:var(--dim);font-size:12.5px;margin:0 0 15px}
+  .cards{display:flex;flex-direction:column;gap:8px}
+  .card{
+    display:block;text-decoration:none;color:inherit;
+    border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:11px 15px;
+    background:rgba(255,255,255,.028);transition:.2s;cursor:pointer;
+  }
+  .card:hover{background:rgba(255,255,255,.06);transform:translateX(3px)}
+  .card b{display:block;font-size:15.5px;margin-bottom:3px}
+  .card span{font-size:12.5px;color:var(--dim);line-height:1.55}
+  .card .tag{font-size:10.5px;color:var(--accent);border:1px solid rgba(46,230,168,.35);border-radius:20px;padding:1px 7px;margin-left:6px;vertical-align:2px}
+  .foot{margin-top:13px;font-size:10.5px;color:#5c6068;line-height:1.7}
+
+  /* 状态栏 */
+  .statusbar{
+    position:absolute;top:0;left:0;right:0;height:34px;z-index:35;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 20px;font-size:11.5px;color:#cfd3da;letter-spacing:.04em;
+    pointer-events:none;
+  }
+  .statusbar .r{display:flex;gap:6px;align-items:center;opacity:.85}
+  .statusbar .bat{width:20px;height:10px;border:1px solid #9aa0aa;border-radius:2.5px;position:relative}
+  .statusbar .bat::after{content:"";position:absolute;left:1px;top:1px;bottom:1px;width:72%;background:#cfd3da;border-radius:1px}
+
+  /* 接通后：压缩头部，把空间让给字幕 */
+  .call.in-call .from,
+  .call.in-call .where{display:none}
+  .call.in-call{padding-top:44px}
+  .call.in-call .who{font-size:19px;margin-top:10px;letter-spacing:.04em;opacity:.9}
+  .call.in-call .ava{width:52px;height:52px;font-size:20px;margin:12px 0 2px}
+  .call.in-call .ava::after{animation:none;opacity:0}
+  .call.in-call .ava{display:none}
+  .call.in-call .wave{height:20px;margin:6px 0 2px}
+  .subs{min-height:120px}
+  .call.in-call .subs p{font-size:14.5px;line-height:1.55;padding:8px 12px}
+
+  /* 跳过 */
+  .skip{
+    all:unset;position:absolute;top:14px;right:16px;z-index:70;cursor:pointer;
+    font-size:12px;color:#6b6f78;padding:6px 10px;border-radius:8px;
+  }
+  .skip:hover{color:#cfd3da;background:rgba(255,255,255,.06)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="phone">
+    <div class="screen">
+
+      <!-- 开场黑屏 -->
+      <div id="hookLine"><span>请你接一个电话</span></div>
+
+      <!-- 状态栏 -->
+      <div class="statusbar">
+        <span id="sbTime">14:22</span>
+        <span class="r"><span>▮▮▮</span><span class="bat"></span></span>
+      </div>
+
+      <!-- 来电 -->
+      <div class="call" id="call" hidden>
+        <div class="from">来 电</div>
+        <div class="who">400-660-8341</div>
+        <div class="where">未知归属地</div>
+        <div class="ava">?</div>
+        <div class="timer" id="timer"></div>
+        <div class="wave" id="wave" hidden><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="subs" id="subs"></div>
+
+        <div class="answerRow" id="answerRow">
+          <button class="circle red" id="hangFirst" aria-label="挂断">
+            <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .4-.23.76-.6.94-1.37.68-2.6 1.6-3.6 2.7-.18.2-.44.32-.72.32-.3 0-.56-.12-.76-.32L.3 14.7a1.03 1.03 0 010-1.45C3.34 10.36 7.44 8.6 12 8.6s8.66 1.76 11.7 4.65c.2.2.3.45.3.72 0 .28-.1.53-.3.73l-1.42 1.42c-.2.2-.46.32-.76.32-.28 0-.54-.12-.72-.32-1-1.1-2.23-2.02-3.6-2.7-.37-.18-.6-.54-.6-.94v-3.1A15.4 15.4 0 0012 9z"/></svg>
+          </button>
+          <button class="circle" id="answerFirst" aria-label="接听">
+            <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .7-.2 1l-2.3 2.2z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 红屏结算 -->
+      <div id="robbed">
+        <div class="rTitle">已 转 账</div>
+        <div class="money"><small>¥</small><span id="moneyNum">8000</span></div>
+        <div class="rSub" id="rSub">余额 · 刚才还是八千</div>
+        <div class="rNote" id="rNote"></div>
+        <div class="rActs">
+          <button class="btn good" id="goSite">那我看看你们做了什么</button>
+        </div>
+      </div>
+
+      <!-- 主站 -->
+      <div id="site">
+        <h1>反诈宣传最大的问题是<br>看完就忘。<br>所以我们让你<em>真的被骗一次</em>。</h1>
+        <p class="lead">三个模块，一条主线：先认，再演，最后复盘。</p>
+        <div class="cards">
+          <a class="card" href="/quiz"><b>认一认<span class="tag">免登录</span></b><span>十条消息，你敢点哪一条。十道题，答完给逐条解析。</span></a>
+          <a class="card" href="/game"><b>演一次<span class="tag">免登录 · 前两关</span></b><span>十二个真实骗局改编。你在第几句松口，屏幕会记下来。</span></a>
+          <a class="card" href="/script"><b>学一学<span class="tag">免登录</span></b><span>骗子的话是说给谁听的。每一句都拆开给你看。</span></a>
+        </div>
+        <div class="foot">
+          本页人物与事件均为虚构，改编自公开判例。<br>
+          真遇到事：拨 12381，或用国家反诈中心 APP。
+        </div>
+      </div>
+
+      <button class="skip" id="skip">跳过 ›</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const call = $('call'), subs = $('subs'), wave = $('wave');
+  const answerRow = $('answerRow'), robbed = $('robbed'), site = $('site');
+  let ended = false;
+
+  // ---------- 0. 黑屏 → 来电 ----------
+  setTimeout(() => {
+    $('hookLine').classList.add('out');
+    call.hidden = false;
+  }, 1600);
+
+  // ---------- 1. 接听 ----------
+  $('answerFirst').addEventListener('click', async () => {
+    if (ended) return;
+    answerRow.hidden = true;
+    wave.hidden = false;
+    call.classList.add('in-call');
+    startTimer();
+    beep();                        // 用户点击后才出声，绕开自动播放限制
+    await playLines([
+      '您好，平台客服，工号 0871。',
+      '您有一笔 1,800 的退款一直没领，今晚十二点就过期了。',
+      '为了核实身份，需要您把刚收到的六位验证码念一下。',
+    ]);
+    showChoices();
+  });
+
+  // 一开始就挂断
+  $('hangFirst').addEventListener('click', () => {
+    if (ended) return;
+    ended = true;
+    call.style.opacity = '.35';
+    subs.innerHTML = '<p>你挂了。这一次你躲过了。</p>';
+    setTimeout(() => { subs.innerHTML = '<p class="key">但下一个电话，不一定。</p>'; }, 1400);
+    setTimeout(() => enterSite(), 3200);
+  });
+
+  // ---------- 2. 三选一 ----------
+  function showChoices() {
+    if (ended) return;
+    answerRow.hidden = true;
+    const box = document.createElement('div');
+    box.className = 'acts';
+    box.innerHTML = `
+      <button class="btn good" data-a="hang">挂了</button>
+      <button class="btn" data-a="more">继续听</button>
+      <button class="btn bad" data-a="give">照他说的，念了验证码</button>`;
+    call.appendChild(box);
+    box.addEventListener('click', async (e) => {
+      const a = e.target.closest('[data-a]');
+      if (!a) return;
+      const k = a.dataset.a;
+      if (k === 'give') return robbedNow();
+      if (k === 'hang') {
+        ended = true;
+        subs.innerHTML = '<p>你挂了。这一次你躲过了。</p>';
+        await sleep(1400);
+        subs.innerHTML = '<p class="key">但下一个电话，不一定。</p>';
+        await sleep(1800);
+        return enterSite();
+      }
+      // 继续听
+      box.remove();
+      await playLines([
+        '您别挂，这边系统已经提交了，您配合一下两分钟就好。',
+        '我这边能看到您的银行卡尾号 0341，对得上吧？',
+      ]);
+      showChoices();
+    });
+  }
+
+  // ---------- 3. 红屏结算 ----------
+  function robbedNow() {
+    if (ended) return;
+    ended = true;
+    robbed.classList.add('on');
+    rollMoney(8000, 6200, 900);
+    $('rNote').innerHTML =
+      '1,800 元，就这样没了。全程 14 秒。<br><br>' +
+      '这不是游戏。这是最常见的一种诈骗话术，第三句才是关键：' +
+      '<b>他真正要的不是钱，是你的验证码</b>。';
+  }
+  $('goSite').addEventListener('click', enterSite);
+
+  function enterSite() {
+    robbed.classList.remove('on');
+    site.classList.add('on');
+    $('skip').hidden = true;
+    try { sessionStorage.setItem('af.seen', '1'); } catch (e) {}
+  }
+
+  // 同一个标签页里第二次进来，不再放钩子（现场演示新开窗口，照样从头演）
+  try {
+    if (sessionStorage.getItem('af.seen')) {
+      $('hookLine').style.display = 'none';
+      call.hidden = true;
+      enterSite();
+    }
+  } catch (e) {}
+
+  // ---------- 工具 ----------
+  async function playLines(arr) {
+    for (const t of arr) {
+      const p = document.createElement('p');
+      subs.appendChild(p);
+      while (subs.children.length > 3) subs.removeChild(subs.firstChild);   // 只留最近三句，别把版面撑炸
+      for (const ch of t) {
+        p.textContent += ch;
+        await sleep(42);
+      }
+      await sleep(1500);
+    }
+  }
+
+  function rollMoney(from, to, dur) {
+    const el = $('moneyNum'), t0 = performance.now();
+    (function step(now) {
+      const k = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - k, 3);
+      el.textContent = Math.round(from + (to - from) * e).toLocaleString('zh-CN');
+      if (k < 1) requestAnimationFrame(step);
+      else $('rSub').textContent = '余额 · 少了 1,800';
+    })(t0);
+  }
+
+  let timerId = null;
+  function startTimer() {
+    let s = 0;
+    const el = $('timer');
+    timerId = setInterval(() => {
+      s++;
+      el.textContent = '通话中 ' + String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    }, 1000);
+  }
+
+  // 一声"嘀"，只在用户交互后调用
+  function beep() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new Ctx();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = 520;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.28);
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.3);
+    } catch (e) { /* 静音也没关系，字幕才是主体 */ }
+  }
+
+  // ---------- 跳过 ----------
+  $('skip').addEventListener('click', () => {
+    ended = true;
+    if (timerId) clearInterval(timerId);
+    enterSite();
+  });
+
+  // 防止误触返回时状态残留
+  window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
+})();
+</script>
+</body>
+</html>

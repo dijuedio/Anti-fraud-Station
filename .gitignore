@@ -27,3 +27,14 @@ _fix_*.py
 _diag_*.py
 _restart.py
 _review/
+
+# 两个项目挪进子目录之后的路径
+**/data/*.db
+**/data/*.db-wal
+**/data/*.db-shm
+第一年/_archive/
+
+# 运行产物（路径挪进子目录后）
+**/data/*.log
+**/data/*.out
+**/data/*.err
