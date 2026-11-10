@@ -36,6 +36,7 @@
   nav{display:flex;gap:26px;font-size:13.5px;color:var(--dim)}
   nav a{text-decoration:none;transition:.2s}
   nav a:hover{color:var(--ink)}
+  @media (max-width:1200px){ nav{gap:15px;font-size:12.5px} }
   @media (max-width:720px){ nav{display:none} }
 
   /* ---------- 首屏 ---------- */
@@ -115,7 +116,9 @@
   .stat{background:var(--bg2);padding:30px 26px}
   .stat b{display:block;font-size:clamp(30px,4vw,44px);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
   .stat b i{font-style:normal;font-size:15px;color:var(--dim);margin-left:5px;font-weight:400}
-  .stat span{display:block;color:var(--dim);font-size:13.5px;margin-top:8px;line-height:1.6}
+  .stat>span{display:block;color:var(--dim);font-size:13.5px;margin-top:8px;line-height:1.6}
+  /* 数字本体（.stat b 内）不许被上面的说明文字规则波及，否则单位会被挤到下一行 */
+  .stat b span{display:inline;color:inherit;font-size:inherit;font-weight:inherit;margin-top:0;line-height:inherit}
   .stat.src{display:flex;align-items:center;color:var(--dim2);font-size:12px}
 
   /* ---------- 五步结构 ---------- */
@@ -152,6 +155,38 @@
   .type .tell{margin-top:12px;font-size:13px;color:#cfd3da;background:rgba(46,230,168,.07);border-left:2px solid var(--green);padding:9px 12px;border-radius:0 8px 8px 0}
   .type .expand{position:absolute;right:18px;top:22px;color:var(--dim2);font-size:16px;transition:.3s}
   .type.open .expand{transform:rotate(45deg);color:var(--green)}
+  /* 按年龄 */
+  .ages{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:stretch}
+  @media (max-width:1180px){ .ages{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:760px){ .ages{grid-template-columns:1fr} }
+  .age{
+    background:var(--bg2);border:1px solid var(--line);border-radius:16px;
+    padding:17px 15px 13px;display:flex;flex-direction:column;
+  }
+  .age .ageh{display:flex;align-items:baseline;gap:7px;margin-bottom:6px}
+  .age .num{font-size:11px;color:var(--dim2);letter-spacing:.1em;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .age .nm{font-size:16.5px;font-weight:600}
+  .age .ctx{color:var(--dim);font-size:12.3px;line-height:1.62;margin:0 0 11px}
+  .age ul{margin:0;padding:0;list-style:none;flex:1}
+  .age li{font-size:12.6px;line-height:1.68;color:#cfd3da;padding:8px 0 8px 11px;border-top:1px solid var(--line);position:relative}
+  .age li:first-child{border-top:none;padding-top:1px}
+  .age li:first-child::before{top:8px}
+  .age li::before{content:'';position:absolute;left:0;top:16px;width:3px;height:3px;border-radius:50%;background:var(--dim2)}
+  .age li b{display:block;color:var(--ink);font-weight:600;margin-bottom:1px}
+  .age .tell{margin-top:11px;font-size:12.2px;color:#cfd3da;background:rgba(46,230,168,.07);border-left:2px solid var(--green);padding:8px 10px;border-radius:0 8px 8px 0}
+
+  /* 常用手段 */
+  .means{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:stretch}
+  @media (max-width:980px){ .means{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:640px){ .means{grid-template-columns:1fr} }
+  .mean{
+    background:var(--bg2);border:1px solid var(--line);border-radius:16px;
+    padding:17px 17px 13px;display:flex;flex-direction:column;
+  }
+  .mean .mn2{font-size:11px;color:var(--dim2);letter-spacing:.14em;margin-bottom:7px;font-variant-numeric:tabular-nums}
+  .mean b{font-size:15.5px;font-weight:600;margin-bottom:6px;display:block}
+  .mean p{margin:0 0 10px;color:var(--dim);font-size:12.7px;line-height:1.68;flex:1}
+  .mean .tell{font-size:12.4px;color:#cfd3da;background:rgba(46,230,168,.07);border-left:2px solid var(--green);padding:8px 10px;border-radius:0 8px 8px 0}
 
   /* ---------- 话术解剖 ---------- */
   .anat{display:grid;gap:14px}
@@ -320,6 +355,8 @@
     <a href="#stats">现状</a>
     <a href="#how">骗局怎么运转</a>
     <a href="#types">十种高发</a>
+    <a href="#ages">按年龄看</a>
+    <a href="#means">常用手段</a>
     <a href="#script">话术解剖</a>
     <a href="#rules">十个凡是</a>
     <a href="#act">该怎么做</a>
@@ -416,6 +453,30 @@
       <p>点开每一张，能看到它分几步走、谁最容易中招、以及一句能当场用上的判断。</p>
     </div>
     <div class="types" id="typeGrid"></div>
+  </div>
+</section>
+
+<!-- ================= 按年龄 ================= -->
+<section id="ages">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="k">对 号 入 座</div>
+      <h2>骗子会挑人。你多大，他就换一套剧本。</h2>
+      <p>下面四组，每组只列最容易碰上的那几条。和自己年龄对得上的，多看两眼；家里有老人，把最后一张念给他听。</p>
+    </div>
+    <div class="ages reveal" id="ageGrid"></div>
+  </div>
+</section>
+
+<!-- ================= 常用手段 ================= -->
+<section id="means">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="k">他 的 手 段</div>
+      <h2>剧本一直在换，用的还是这十二样。</h2>
+      <p>不管电话那头自称是谁，往下走都绕不开这几步。认出手法，比记住案例管用。</p>
+    </div>
+    <div class="means reveal" id="meanGrid"></div>
   </div>
 </section>
 
@@ -613,6 +674,63 @@ const ANAT = [
   {q:'我这边能看到您的银行卡尾号 0341，对得上吧？',k:'伪造权威',w:'报出一串你以为只有银行才知道的信息，你的警惕就在这一秒塌掉。'}
 ];
 
+const AGES = [
+  {n:'15 - 22', t:'学生', ctx:'手上钱不多，可对赚点零花和同学找我帮忙最没戒心。',
+   cases:[
+     {k:'刷单点赞', s:'群里招点赞员，前三单真返你八块十块，第四单让你垫五百，说做完一起结。'},
+     {k:'游戏低价交易', s:'卖皮肤卖号的私聊你，说走微信便宜两百。你先付钱，他再说账号冻结，要交解冻费。'},
+     {k:'约炮、裸聊', s:'“同城约”的软件要你充会员、交保证金才见面；或者开视频被录屏，第二天拿通讯录要钱。'},
+     {k:'同学头像来借钱', s:'头像昵称一模一样，说手机被偷了急用钱，语音还像本人（AI 拟声）。'},
+     {k:'校园贷注销', s:'自称平台客服，说你大学开的额度不注销会影响征信，让你把额度提出来转到安全账户。'}
+   ],
+   tell:'凡是要你先垫钱、先交保证金的，直接停。借钱那条，挂掉，用你存着的号码打回去。'},
+
+  {n:'23 - 30', t:'刚工作', ctx:'开始租房、出差、订机票，也第一次有了一笔会被人惦记的存款。',
+   cases:[
+     {k:'租房假中介', s:'房源图好看、价低，看房前先要意向金，收完微信就注销。'},
+     {k:'机票退改签', s:'航班信息报得一字不差，说航班取消要赔你钱，让你装个软件开屏幕共享验证银行卡。'},
+     {k:'假客服退款', s:'刚下完单就来电话，说商品有质量问题要双倍赔，让你念一下刚收到的验证码。'},
+     {k:'婚恋交友带投资', s:'网上遇到一个哪儿都对的人，聊两个月，说自己在做投资，带你一起赚。'},
+     {k:'培训贷', s:'说包就业、先上课后付款，签下去的其实是贷款合同，课没上完，账要还。'}
+   ],
+   tell:'退改签只走官方 App，客服不装软件、不要验证码。对象一提到投资，这段就该结束了。'},
+
+  {n:'31 - 50', t:'中年', ctx:'上有老下有小，手里有积蓄，也最怕影响工作和孩子。',
+   cases:[
+     {k:'假投资 App', s:'群里导师带单，App 里行情是真的，小钱也能提现，等你加到大额就登录不上。'},
+     {k:'冒充领导', s:'头像是单位领导，加你微信说在开会不方便接电话，让你先替单位垫一笔款。'},
+     {k:'班级群里的老师', s:'头像和昵称都跟班主任一样，发个收款码收 198 的资料费，家长一个接一个转。'},
+     {k:'孩子出事', s:'自称老师或医院，说孩子在学校受伤要交费，催你赶紧。'},
+     {k:'能帮你追回的人', s:'被骗过一次之后，会有人找上门说能追回、认识律师，先交服务费，然后人也消失。'}
+   ],
+   tell:'收益高过银行几倍的，都是骗局。单位的事，打办公室座机核实；孩子的事，先打班主任电话。'},
+
+  {n:'55 +', t:'老人', ctx:'不常上网，对国家、政策这几个字最信，也最怕给儿女添麻烦。',
+   cases:[
+     {k:'假数字人民币 App', s:'群里发个安装包，说国家发钱，签到领现金，拉一个人多返一份。'},
+     {k:'冒充儿孙', s:'“妈，我出事了，别告诉别人”，声音很像（AI 拟声），让你马上转钱。'},
+     {k:'免费旅游团', s:'两天一夜包吃包住，到了地方关起门来卖保健品和玉石，不买不让走。'},
+     {k:'燃气、水电上门', s:'穿工装敲门说管道漏气，当场换件收几百到几千，收完电话就打不通。'},
+     {k:'养老理财', s:'“以房养老”“高息养老项目”，承诺每月返钱，先让你把房子抵押出去，返几个月公司就没了。'}
+   ],
+   tell:'没有国家发钱这回事，也没有安全账户。儿孙要钱，挂掉，用存着的号码打回去。'}
+];
+
+const MEANS = [
+  {n:'01', k:'报出你的事', s:'姓名、订单号、银行卡尾号、航班号，他张口就来。', t:'他知道你的事，只说明信息被卖过，不说明他是真的。'},
+  {n:'02', k:'给你一个倒计时', s:'"今晚十二点失效""两小时不处理就冻结"。', t:'真机构不催人，催你的都在赶你别想。'},
+  {n:'03', k:'让你别问人', s:'别挂电话、别告诉家里人、找个安静的地方配合。', t:'你一问别人，他就没法演了，所以这一步他一定会做。'},
+  {n:'04', k:'让你装个 App', s:'聊天里甩个安装包，短信里给条链接，群里发个二维码。', t:'应用商店搜不到的，一律不装。'},
+  {n:'05', k:'让你开几个权限', s:'一个交友、领钱、清理内存的软件，要短信、要通知使用权、要悬浮窗。', t:'这三样凑一起，它不是在帮你，是在看你的手机。这种包我们拆过，验证码能被它实时读走。'},
+  {n:'06', k:'只要六个数字', s:'说法是核实身份、激活、解冻、验证，要的都是那条短信。', t:'验证码说出去一次就用完了，事后改密码也来不及。'},
+  {n:'07', k:'让你共享屏幕', s:'"我一步步教你操作"，让你装屏幕共享或者远程协助。', t:'他不在你手机上，却看得见你按的每一个键。'},
+  {n:'08', k:'先返你一点', s:'前三单真返钱，小额提现真到账。', t:'那是他愿意花的成本，不是他对你好。'},
+  {n:'09', k:'让你绕开平台', s:'走微信省手续费，别在平台下单，我私下给你便宜。', t:'一绕开平台，就没有订单、没有记录、没人能帮你追。'},
+  {n:'10', k:'让你看见别人都在赚', s:'群里的导师、学员、到账截图，一唱一和。', t:'一个群里除了你，可能全是同一个人。'},
+  {n:'11', k:'换个脸、换个声音', s:'熟人的脸和声音都能做出来，视频里开口让你转钱。', t:'借钱只认回拨的那个电话，别认视频。'},
+  {n:'12', k:'让你把现金、黄金交出去', s:'说线上转账有风险，让你取现、买金条，用快递或网约车送到指定地点。', t:'只要要你把现金或黄金交出去验资，就是诈骗。'}
+];
+
 const RULES = [
   '凡是要求<b>垫付资金</b>做任务的兼职刷单，都是诈骗。',
   '凡是宣称<b>内幕消息、稳赚不赔、高额回报</b>的投资理财，都是诈骗。',
@@ -656,6 +774,22 @@ $('#anatList').innerHTML = ANAT.map(a => `
 
 $('#ruleList').innerHTML = RULES.map((r, i) => `
   <div class="rule"><div class="n">${String(i+1).padStart(2,'0')}</div><p>${r}</p></div>`).join('');
+
+document.getElementById('ageGrid').innerHTML = AGES.map(a => `
+  <div class="age">
+    <div class="ageh"><span class="num">${a.n}</span><span class="nm">${a.t}</span></div>
+    <p class="ctx">${a.ctx}</p>
+    <ul>${a.cases.map(c => `<li><b>${c.k}</b>${c.s}</li>`).join('')}</ul>
+    <div class="tell">${a.tell}</div>
+  </div>`).join('');
+
+document.getElementById('meanGrid').innerHTML = MEANS.map(m => `
+  <div class="mean">
+    <div class="mn2">${m.n}</div>
+    <b>${m.k}</b>
+    <p>${m.s}</p>
+    <div class="tell">${m.t}</div>
+  </div>`).join('');
 
 /* ============ 数字滚动 ============ */
 function countUp(el) {
